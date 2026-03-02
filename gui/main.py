@@ -1,6 +1,4 @@
-# --- Importazione Librerie Essenziali ---
 import tkinter as tk
-# ttkbootstrap migliora l'aspetto di tkinter
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import * # Importa costanti di stile (es. PRIMARY, INFO)
 from tkinter import filedialog, messagebox, scrolledtext # Widget standard Tkinter
@@ -8,17 +6,10 @@ import os # Per operazioni sul sistema operativo (path, file)
 from PIL import Image, ImageTk, UnidentifiedImageError # Per manipolazione immagini
 import sys # Per controllare l'ambiente di esecuzione (es. se è un eseguibile)
 import traceback # Per ottenere dettagli sugli errori
-import requests as req
 
 # --- Importazione Libreria Steganografia (con controllo) ---
 # La steganografia permette di nascondere dati (testo) dentro immagini
-try:
-    from stegano import lsb # Usiamo il metodo LSB (Least Significant Bit)
-except ImportError:
-    # Se la libreria manca, avvisa l'utente ed esci
-    messagebox.showerror("Errore Dipendenza", "Libreria 'stegano' non trovata.\nInstallala con: pip install stegano")
-    sys.exit(1) # Termina l'applicazione
-
+###from stegano import lsb # Usiamo il metodo LSB (Least Significant Bit)
 
 # --- Classe Principale dell'Applicazione ---
 class GalleriaImmagini(ttk.Window):
@@ -230,16 +221,16 @@ class GalleriaImmagini(ttk.Window):
         self.view_menu = view_menu
 
         # --- Menu Steganografia ---
-        steg_menu = tk.Menu(menubar, tearoff=0)
+        ###steg_menu = tk.Menu(menubar, tearoff=0)
         # Checkbutton per attivare/disattivare la modalità
-        steg_menu.add_checkbutton(label="Modalità Steganografia", variable=self.stegano_mode,
-                                  command=self._toggle_stegano_mode)
-        steg_menu.add_separator()
+        ###steg_menu.add_checkbutton(label="Modalità Steganografia", variable=self.stegano_mode,
+                                  #command=self._toggle_stegano_mode)
+        ###steg_menu.add_separator()
         # Comandi per nascondere/estrarre testo (inizialmente disabilitati)
-        steg_menu.add_command(label="Nascondi Testo nell'Immagine...", command=self.nascondi_testo, state=tk.DISABLED)
-        steg_menu.add_command(label="Estrai Testo dall'Immagine", command=self.estrai_testo, state=tk.DISABLED)
-        menubar.add_cascade(label="Steganografia", menu=steg_menu)
-        self.steg_menu = steg_menu
+        ###steg_menu.add_command(label="Nascondi Testo nell'Immagine...", command=self.nascondi_testo, state=tk.DISABLED)
+        ###steg_menu.add_command(label="Estrai Testo dall'Immagine", command=self.estrai_testo, state=tk.DISABLED)
+        ###menubar.add_cascade(label="Steganografia", menu=steg_menu)
+        ###self.steg_menu = steg_menu
 
         # Applica la menubar creata alla finestra principale
         self.config(menu=menubar)
@@ -294,13 +285,13 @@ class GalleriaImmagini(ttk.Window):
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=5, fill=tk.Y)
 
         # Bottoni Steganografia (Nascondi/Estrai)
-        self.btn_hide = ttk.Button(toolbar, text="Nascondi", image=icon_hide_text, compound=btn_compound,
-                                   command=self.nascondi_testo, bootstyle=WARNING, state=tk.DISABLED)
-        self.btn_hide.pack(side=tk.LEFT, padx=2)
-        self.btn_extract = ttk.Button(toolbar, text="Estrai", image=icon_extract_text, compound=btn_compound,
-                                      command=self.estrai_testo, bootstyle=WARNING, state=tk.DISABLED)
-        self.btn_extract.pack(side=tk.LEFT, padx=2)
-        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=5, fill=tk.Y)
+        ###self.btn_hide = ttk.Button(toolbar, text="Nascondi", image=icon_hide_text, compound=btn_compound,
+                                   #command=self.nascondi_testo, bootstyle=WARNING, state=tk.DISABLED)
+        ###self.btn_hide.pack(side=tk.LEFT, padx=2)
+        ###self.btn_extract = ttk.Button(toolbar, text="Estrai", image=icon_extract_text, compound=btn_compound,
+                                      #command=self.estrai_testo, bootstyle=WARNING, state=tk.DISABLED)
+        ###self.btn_extract.pack(side=tk.LEFT, padx=2)
+        #ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=5, fill=tk.Y)
 
         # --- Widget Ricerca (allineati a destra) ---
         self.btn_help = ttk.Button(toolbar, text="Aiuto", image=icon_help, compound=btn_compound, command=self.mostra_info, bootstyle=INFO)#Usa la stessa funzione del menu
@@ -473,9 +464,9 @@ class GalleriaImmagini(ttk.Window):
         grid_btn_state = tk.NORMAL if not is_griglia and self.immagini else tk.DISABLED # Bottone Griglia attivo solo in Presentazione con immagini
 
         # Stato controlli Steganografia
-        stegano_general_state = tk.NORMAL if can_stegano else tk.DISABLED # Toggle e menu base attivi se l'immagine è potenzialmente compatibile
-        stegano_hide_state = tk.NORMAL if can_stegano and in_stegano_mode else tk.DISABLED # Nascondi attivo solo se compatibile E in modalità stegano
-        stegano_extract_state = tk.NORMAL if can_stegano and in_stegano_mode else tk.DISABLED # Estrai attivo solo se compatibile E in modalità stegano
+        ###stegano_general_state = tk.NORMAL if can_stegano else tk.DISABLED # Toggle e menu base attivi se l'immagine è potenzialmente compatibile
+        ###stegano_hide_state = tk.NORMAL if can_stegano and in_stegano_mode else tk.DISABLED # Nascondi attivo solo se compatibile E in modalità stegano
+        ###stegano_extract_state = tk.NORMAL if can_stegano and in_stegano_mode else tk.DISABLED # Estrai attivo solo se compatibile E in modalità stegano
 
         # --- Applica Stati ai Widget ---
         # Toolbar
@@ -485,18 +476,18 @@ class GalleriaImmagini(ttk.Window):
         self.btn_cerca.config(state=search_state)
         self.txt_ricerca.config(state=search_state) # Abilita/disabilita anche campo ricerca
         self.btn_mostra_griglia.config(state=grid_btn_state)
-        self.btn_hide.config(state=stegano_hide_state)
-        self.btn_extract.config(state=stegano_extract_state)
+        ###self.btn_hide.config(state=stegano_hide_state)
+        ###self.btn_extract.config(state=stegano_extract_state)
         # Pannello Dettagli/Stegano
-        self.stegano_toggle_btn.config(state=stegano_general_state) # Abilita/disabilita il toggle stesso
+        ###self.stegano_toggle_btn.config(state=stegano_general_state) # Abilita/disabilita il toggle stesso
 
         # Menu (usa try/except perché il menu potrebbe non essere pronto all'inizio)
         try:
             self.file_menu.entryconfig("Salva Immagine Come...", state=save_state)
             # Aggiorna voci menu Steganografia
-            self.steg_menu.entryconfig("Modalità Steganografia", state=stegano_general_state)
-            self.steg_menu.entryconfig("Nascondi Testo nell'Immagine...", state=stegano_hide_state)
-            self.steg_menu.entryconfig("Estrai Testo dall'Immagine", state=stegano_extract_state)
+            ###self.steg_menu.entryconfig("Modalità Steganografia", state=stegano_general_state)
+            ###self.steg_menu.entryconfig("Nascondi Testo nell'Immagine...", state=stegano_hide_state)
+            ###self.steg_menu.entryconfig("Estrai Testo dall'Immagine", state=stegano_extract_state)
         except tk.TclError: pass # Ignora errori se il menu non è ancora completamente creato
 
         # --- Gestisci Stato Area Dettagli ---
@@ -1175,8 +1166,6 @@ class GalleriaImmagini(ttk.Window):
         print("Chiusura applicazione.")
         self.destroy() # Distrugge la finestra Tkinter e termina il mainloop
 
-
-class FinestraLogin(ttk.Toplevel):
     def __init__(self, master_app):
         super().__init__(master_app)
         self.title("Autenticazione DevOps")

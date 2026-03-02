@@ -19,3 +19,5 @@ services:
 
 volumes:
   dati_mongo:
+
+#docker-compose up -d --build
