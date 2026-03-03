@@ -7,7 +7,6 @@ import sys
 from PIL import Image, ImageTk
 
 class PannelloGalleria(ttk.Frame):
-    # --- COSTANTI ---
     ICON_SIZE = (20, 20)
     THUMBNAIL_SIZE = (150, 150) 
     THUMBNAIL_PADDING = 8 
@@ -25,17 +24,15 @@ class PannelloGalleria(ttk.Frame):
         super().__init__(master_app, padding=10)
         self.app_principale = master_app 
         
-        # Configurazione percorsi e icone
         self.base_path = self._get_base_path()
         self.icon_path = os.path.join(self.base_path, "icons")
         self.icons = {}
         
-        # Variabili di stato
         self.modalita_visualizzazione = tk.StringVar(value="Griglia")
         self.directory_corrente = ""
         self.immagini = []
         
-        # Disegniamo l'interfaccia non appena il pannello viene creato
+        #Disegniamo l'interfaccia non appena il pannello viene creato
         self._crea_interfaccia()
 
     # --- 2. COSTRUZIONE DELLA GRAFICA ---
@@ -48,39 +45,32 @@ class PannelloGalleria(ttk.Frame):
         self.toolbar = self._create_toolbar(main_frame)
         self.toolbar.pack(fill=tk.X, pady=(0, 10))
 
-        # IL SISTEMA A SCHEDE (NOTEBOOK)
         self.notebook = ttk.Notebook(main_frame, bootstyle="info")
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Scheda 1: Le immagini del PC
         self.tab_locale = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_locale, text=" 📁 Immagini Locali ")
+        self.notebook.add(self.tab_locale, text="Immagini Locali ")
 
-        # Scheda 2: Le immagini dal database
+
         self.tab_server = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_server, text=" ☁️ Immagini dal Server ")
+        self.notebook.add(self.tab_server, text="Immagini dal Server ")
 
         # --- AREE DELLA SCHEDA LOCALE ---
         
-        # A) Il contenitore della Griglia (visibile all'inizio)
         self.frame_griglia_locale = ttk.Frame(self.tab_locale)
         self.frame_griglia_locale.pack(fill=tk.BOTH, expand=True)
 
-        # B) Il contenitore della Presentazione (nascosto all'inizio)
         self.frame_presentazione = ttk.Frame(self.tab_locale)
         
-        # Area Immagine Ingrandita (con correzione del tkapp)
         stile_globale = ttk.Style()
         self.canvas_immagine = tk.Canvas(self.frame_presentazione, bg=stile_globale.lookup('TFrame', 'background'), highlightthickness=0)
         self.canvas_immagine.pack(fill=tk.BOTH, expand=True, pady=5)
         
-        # Area Dettagli
         self.frame_dettagli = ttk.LabelFrame(self.frame_presentazione, text="Dettagli Immagine")
         self.frame_dettagli.pack(fill=tk.X, padx=10, pady=5)
         self.area_testo_dettagli = tk.Text(self.frame_dettagli, height=4, state=tk.DISABLED, bg="#2b3e50", fg="white") 
         self.area_testo_dettagli.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Barra dei Bottoni Azione (Sotto i dettagli)
         barra_azioni = ttk.Frame(self.frame_presentazione)
         barra_azioni.pack(fill=tk.X, pady=5, padx=10)
         ttk.Button(barra_azioni, text="← Torna alla Griglia", command=self.torna_alla_griglia, bootstyle=SECONDARY).pack(side=tk.LEFT)
@@ -124,13 +114,39 @@ class PannelloGalleria(ttk.Frame):
         
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=5, fill=tk.Y)
 
-        self.btn_prev = ttk.Button(toolbar, text="Prec", image=icon_prev, compound=btn_compound, bootstyle=SECONDARY)
+        self.btn_prev = ttk.Button(toolbar, text="Prec", image=icon_prev, compound=btn_compound, bootstyle=SECONDARY, command=self.mostra_precedente)
         self.btn_prev.pack(side=tk.LEFT, padx=2)
         
-        self.btn_next = ttk.Button(toolbar, text="Succ", image=icon_next, compound=btn_compound, bootstyle=SECONDARY)
+        self.btn_next = ttk.Button(toolbar, text="Succ", image=icon_next, compound=btn_compound, bootstyle=SECONDARY, command=self.mostra_successivo)
         self.btn_next.pack(side=tk.LEFT, padx=2)
 
         return toolbar
+    
+    def mostra_precedente(self):
+        """Passa all'immagine precedente (funziona solo se siamo nella vista presentazione)."""
+        # Controlliamo se ci sono immagini e se siamo attualmente in modalità presentazione
+        if not self.immagini or not hasattr(self, 'indice_corrente'): 
+            return 
+            
+        num_immagini = len(self.immagini)
+        
+        # Matematica modulare: calcola l'indice precedente in modo ciclico
+        nuovo_indice = (self.indice_corrente - 1 + num_immagini) % num_immagini
+        
+
+        self.apri_presentazione(nuovo_indice)
+
+    def mostra_successivo(self):
+        """Passa all'immagine successiva (funziona solo se siamo nella vista presentazione)."""
+        if not self.immagini or not hasattr(self, 'indice_corrente'): 
+            return 
+            
+        num_immagini = len(self.immagini)
+        
+        # Matematica modulare: calcola l'indice successivo in modo ciclico
+        nuovo_indice = (self.indice_corrente + 1) % num_immagini
+        
+        self.apri_presentazione(nuovo_indice)
 
     # --- 3. LOGICA DI CARICAMENTO FILE ---
     def apri_cartella(self):
