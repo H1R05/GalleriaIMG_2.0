@@ -598,7 +598,7 @@ class GalleriaImmagini(ttk.Window):
                 ttk.Label(error_frame, text=f"ERRORE\n{os.path.basename(path)}", bootstyle=(INVERSE, DANGER),
                           wraplength=self.THUMBNAIL_SIZE[0] - 10, justify=tk.CENTER, anchor=tk.CENTER).pack(expand=True, fill=tk.BOTH)
                 # Passa comunque alla cella successiva
-                col += 1;
+                col += 1
                 if col >= cols: col = 0; row += 1
 
         # Configura le colonne del container_frame per espandersi uniformemente
@@ -745,41 +745,6 @@ class GalleriaImmagini(ttk.Window):
 
         # Infine, rendi l'area di nuovo non modificabile
         self.area_dettagli.config(state=tk.DISABLED)
-
-    def mostra_precedente(self):
-        """Passa all'immagine precedente nella lista (ciclico)."""
-        if not self.immagini or len(self.immagini) <= 1: return # Niente da fare
-        current_index = self.indice_corrente.get()
-        num_immagini = len(self.immagini)
-        # Calcola nuovo indice (gestisce il caso in cui siamo al primo elemento)
-        nuovo_indice = (current_index - 1 + num_immagini) % num_immagini
-        self.indice_corrente.set(nuovo_indice)
-
-        # Aggiorna la visualizzazione
-        if self.modalita_visualizzazione.get() == "Presentazione":
-            self.mostra_immagine_corrente() # Ridisegna immagine
-        else: # In modalità Griglia, non serve ridisegnare tutto
-            # Aggiorna solo dettagli (se non in stegano mode) e stato
-            if not self.stegano_mode.get():
-                self.aggiorna_dettagli()
-            self.aggiorna_stato()
-
-    def mostra_successivo(self):
-        """Passa all'immagine successiva nella lista (ciclico)."""
-        if not self.immagini or len(self.immagini) <= 1: return # Niente da fare
-        current_index = self.indice_corrente.get()
-        num_immagini = len(self.immagini)
-        # Calcola nuovo indice (gestisce il caso in cui siamo all'ultimo elemento)
-        nuovo_indice = (current_index + 1) % num_immagini
-        self.indice_corrente.set(nuovo_indice)
-
-        # Aggiorna la visualizzazione
-        if self.modalita_visualizzazione.get() == "Presentazione":
-            self.mostra_immagine_corrente()
-        else:
-            if not self.stegano_mode.get():
-                self.aggiorna_dettagli()
-            self.aggiorna_stato()
 
     # --- Operazioni File ---
 
@@ -933,25 +898,6 @@ class GalleriaImmagini(ttk.Window):
             messagebox.showerror("Errore Salvataggio", f"Impossibile salvare l'immagine:\n{file_path_salvataggio}\n\nErrore: {e}")
             traceback.print_exc()
 
-    def cerca_immagini(self):
-        """Esegue una ricerca di immagini nella cartella corrente usando il testo nel campo di ricerca."""
-        # Controlla se una cartella è aperta
-        if not self.directory_corrente:
-            messagebox.showwarning("Nessuna Cartella Aperta", "Aprire prima una cartella per poter effettuare una ricerca.")
-            return
-        # Ottieni il termine di ricerca dal campo di testo
-        termine_ricerca = self.txt_ricerca.get()
-        # Ricarica le immagini applicando il filtro di ricerca
-        self.carica_immagini_da_cartella(self.directory_corrente, termine_ricerca)
-
-    def applica_filtri(self):
-        """Ricarica le immagini dalla cartella corrente quando un filtro viene cambiato."""
-        # Funziona solo se una cartella è già stata aperta
-        if self.directory_corrente:
-            # Esegue una nuova ricerca (con termine vuoto se non c'è nulla nel campo)
-            # Questo ricaricherà la lista usando i filtri aggiornati
-            self.cerca_immagini()
-
     # --- Metodi Steganografia ---
 
     def _toggle_stegano_mode(self):
@@ -1103,35 +1049,3 @@ class GalleriaImmagini(ttk.Window):
             self.area_dettagli.insert(tk.END, f"[Errore durante l'estrazione: {e}]")
             # Ripristina stato corretto
             if not self.stegano_mode.get(): self.area_dettagli.config(state=tk.DISABLED)
-
-    # --- Metodo Info e Uscita ---
-
-    def mostra_info(self):
-        """Mostra una finestra di dialogo con informazioni in stile più discorsivo."""
-        titolo = f"Informazioni - {self.APP_TITLE}"
-
-        messaggio = f"{self.APP_TITLE}\n\n"
-        messaggio += "Benvenuto! Ecco cosa puoi fare con questa galleria:\n\n"
-
-        messaggio += "APRIRE IMMAGINI:\n"
-        messaggio += "Usa 'Apri Immagine' o 'Apri Cartella' dal menu File o dalla barra degli strumenti per caricare le tue foto.\n\n"
-
-        messaggio += "VISUALIZZARE:\n"
-        messaggio += "Scegli tra 'Griglia' per vedere le miniature o 'Presentazione' per vedere un'immagine ingrandita (menu Visualizza). Scorri tra le immagini usando i tasti freccia sinistra e destra.\n\n"
-
-        messaggio += "ORGANIZZARE:\n"
-        messaggio += "Hai aperto una cartella? Usa il campo 'Cerca' nella toolbar per trovare immagini per nome. Puoi anche filtrare i tipi di file (JPEG, PNG, ecc.) usando gli interruttori colorati in basso.\n\n"
-
-        messaggio += "SALVARE:\n"
-        messaggio += "Seleziona un'immagine e vai su 'File > Salva Immagine Come...' per salvarla, anche in un formato diverso se necessario.\n\n"
-
-        messaggio += "NASCONDERE TESTO (Steganografia):\n"
-        messaggio += "Vuoi nascondere un messaggio segreto? Attiva la 'Modalità Steganografia' (menu o pannello inferiore), seleziona un'immagine (meglio PNG!), scrivi il testo nell'area apposita, clicca 'Nascondi' e salva il nuovo file PNG generato.\n\n"
-
-        messaggio += "ESTRARRE TESTO NASCOSTO:\n"
-        messaggio += "Apri l'immagine che contiene il messaggio, attiva la 'Modalità Steganografia' e clicca 'Estrai'. Il testo segreto apparirà nell'area inferiore.\n\n"
-
-        formati_supportati = ', '.join(sorted(self.SUPPORTED_EXT_MAP.keys()))
-        messaggio += f"Formati Supportati: {formati_supportati}\n"
-        # Mostra la finestra di dialogo. Si chiude cliccando su "OK".
-        messagebox.showinfo(titolo, messaggio)

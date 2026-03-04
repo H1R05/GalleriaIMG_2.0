@@ -19,6 +19,14 @@ class PannelloGalleria(ttk.Frame):
     }
     ALL_SUPPORTED_EXT_FLAT = [ext for group in SUPPORTED_EXT_MAP.values() for ext in group]
 
+    SAVE_FILEDIALOG_TYPES = [
+        ("JPEG", "*.jpg"),
+        ("PNG", "*.png"),
+        ("GIF", "*.gif"),
+        ("BMP", "*.bmp"),
+        ("Tutti i file", "*.*")
+    ]
+
     # --- 1. INIZIALIZZAZIONE (Il Costruttore) ---
     def __init__(self, master_app):
         super().__init__(master_app, padding=10)
@@ -27,10 +35,19 @@ class PannelloGalleria(ttk.Frame):
         self.base_path = self._get_base_path()
         self.icon_path = os.path.join(self.base_path, "icons")
         self.icons = {}
+
+        self.filtri_ext = {
+            "JPEG": tk.BooleanVar(value=True),
+            "PNG": tk.BooleanVar(value=True),
+            "GIF": tk.BooleanVar(value=True),
+            "BMP": tk.BooleanVar(value=True)
+        }
         
         self.modalita_visualizzazione = tk.StringVar(value="Griglia")
         self.directory_corrente = ""
         self.immagini = []
+
+        self._search_debounce_job = None
         
         #Disegniamo l'interfaccia non appena il pannello viene creato
         self._crea_interfaccia()
@@ -84,6 +101,27 @@ class PannelloGalleria(ttk.Frame):
         self.barra_stato = ttk.Label(self, text="Pronto", bootstyle=PRIMARY)
         self.barra_stato.pack(side=tk.BOTTOM, fill=tk.X, pady=(10, 0))
 
+        # --- BARRA DEI FILTRI (Sopra la barra di stato) ---
+        self.frame_filtri = ttk.Frame(self)
+        self.frame_filtri.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=5)
+
+        ttk.Label(self.frame_filtri, text="Filtri formato:", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=(0, 10))
+
+        # Creiamo un interruttore per ogni formato supportato
+        for formato, var in self.filtri_ext.items():
+            cb = ttk.Checkbutton(
+                self.frame_filtri,
+                text=formato,
+                variable=var, # Colleghiamo la variabile di stato!
+                command=self.cerca_immagini, # Se cliccato, ri-esegue il filtraggio
+                bootstyle="round-toggle" # Stile moderno a interruttore
+            )
+            cb.pack(side=tk.LEFT, padx=10)
+
+        # --- LA BARRA DI STATO IN FONDO ---
+        self.barra_stato = ttk.Label(self, text="Pronto", bootstyle=PRIMARY)
+        self.barra_stato.pack(side=tk.BOTTOM, fill=tk.X, pady=(10, 0))
+
     def _create_toolbar(self, parent):
         """Crea i bottoni della barra degli strumenti in alto"""
         toolbar = ttk.Frame(parent, padding=(5, 5))
@@ -94,6 +132,8 @@ class PannelloGalleria(ttk.Frame):
         icon_grid = self._load_icon("grid.png")
         icon_prev = self._load_icon("arrow-left.png")
         icon_next = self._load_icon("arrow-right.png")
+        icon_search = self._load_icon("search.png")
+        icon_help = self._load_icon("help.png")
 
         # Menu a tendina "Apri"
         self.btn_apri = ttk.Menubutton(toolbar, text="Apri", image=icon_open_menu, compound=btn_compound, bootstyle=INFO)
@@ -104,7 +144,7 @@ class PannelloGalleria(ttk.Frame):
         menu_apri.add_command(label="Apri Cartella...", command=self.apri_cartella)
         self.btn_apri["menu"] = menu_apri
         
-        self.btn_salva = ttk.Button(toolbar, text="Salva Come...", image=icon_save, compound=btn_compound, bootstyle=SUCCESS)
+        self.btn_salva = ttk.Button(toolbar, text="Salva Come...", image=icon_save, compound=btn_compound, bootstyle=SUCCESS, command=self.salva_immagine)
         self.btn_salva.pack(side=tk.LEFT, padx=2)
         
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=5, fill=tk.Y)
@@ -119,6 +159,22 @@ class PannelloGalleria(ttk.Frame):
         
         self.btn_next = ttk.Button(toolbar, text="Succ", image=icon_next, compound=btn_compound, bootstyle=SECONDARY, command=self.mostra_successivo)
         self.btn_next.pack(side=tk.LEFT, padx=2)
+
+        self.btn_help = ttk.Button(toolbar, text="Aiuto", image=icon_help, compound=btn_compound, command=self.mostra_info, bootstyle=INFO)#Usa la stessa funzione del menu
+        self.btn_help.pack(side=tk.RIGHT, padx=5)
+
+        # --- WIDGET DI RICERCA (Allineati a destra) ---
+        search_frame = ttk.Frame(toolbar)
+        search_frame.pack(side=tk.RIGHT, padx=5)
+        
+        self.btn_cerca = ttk.Button(search_frame, text="Cerca", image=icon_search, compound=btn_compound, bootstyle=PRIMARY, command=self.cerca_immagini)
+        self.btn_cerca.pack(side=tk.RIGHT)
+        
+        self.txt_ricerca = ttk.Entry(search_frame, width=20)
+        self.txt_ricerca.pack(side=tk.RIGHT, padx=5)
+
+        self.txt_ricerca.bind("<Return>", lambda e: self.cerca_immagini())
+        self.txt_ricerca.bind("<KeyRelease>", self._on_search_change)
 
         return toolbar
     
@@ -148,6 +204,100 @@ class PannelloGalleria(ttk.Frame):
         
         self.apri_presentazione(nuovo_indice)
 
+    # --- LOGICA DI ESPORTAZIONE ---
+    def salva_immagine(self):
+        """Salva l'immagine attualmente ingrandita, gestendo la conversione dei formati."""
+        
+        # 1. Controlli di sicurezza: possiamo salvare solo se stiamo guardando una foto ingrandita
+        if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
+            messagebox.showwarning("Attenzione", "Devi prima cliccare su un'immagine per ingrandirla prima di poterla salvare.")
+            return
+
+        if not self.immagini or not (0 <= self.indice_corrente < len(self.immagini)):
+            return
+
+        img_path_originale = self.immagini[self.indice_corrente].get("path")
+        if not img_path_originale:
+            messagebox.showerror("Errore", "Percorso del file originale mancante.")
+            return
+
+        # 2. Prepariamo la finestra di dialogo suggerendo il nome originale
+        nome_file_originale = os.path.basename(img_path_originale)
+        _, ext_originale = os.path.splitext(nome_file_originale)
+        
+        file_path_salvataggio = filedialog.asksaveasfilename(
+            title="Salva immagine come...",
+            initialdir=self.directory_corrente or os.path.expanduser("~"),
+            initialfile=nome_file_originale,
+            defaultextension=ext_originale,
+            filetypes=self.SAVE_FILEDIALOG_TYPES
+        )
+        
+        if not file_path_salvataggio:
+            return # L'utente ha premuto "Annulla", usciamo silenziosamente
+
+        # 3. Processo di elaborazione e salvataggio con PIL
+        try:
+            with Image.open(img_path_originale) as img:
+                save_format_ext = os.path.splitext(file_path_salvataggio)[1].lower()
+                img_to_save = img.copy() # Lavoriamo su una copia per non rovinare l'originale in RAM
+
+                # --- GESTIONE DEL CANALE ALPHA (Trasparenza) ---
+                # Se l'utente salva in JPG ma la foto è PNG con trasparenza (RGBA)
+                if save_format_ext in ['.jpg', '.jpeg']:
+                    if img_to_save.mode in ('RGBA', 'LA') or (img_to_save.mode == 'P' and 'transparency' in img_to_save.info):
+                        # Creiamo una "tela" completamente bianca grande come la foto
+                        sfondo_bianco = Image.new("RGB", img_to_save.size, (255, 255, 255))
+                        if img_to_save.mode == 'P':
+                            img_to_save = img_to_save.convert('RGBA')
+                        # Incolliamo la nostra foto sulla tela bianca (la maschera alpha buca lo sfondo)
+                        sfondo_bianco.paste(img_to_save, mask=img_to_save.split()[3]) 
+                        img_to_save = sfondo_bianco
+                    elif img_to_save.mode != 'RGB':
+                        img_to_save = img_to_save.convert('RGB')
+                        
+                # Anche il formato BMP fa a pugni con la trasparenza standard
+                elif save_format_ext == '.bmp':
+                    if img_to_save.mode == 'RGBA' or 'A' in img_to_save.mode:
+                        img_to_save = img_to_save.convert('RGB')
+
+                # 4. Salvataggio fisico sul disco
+                img_to_save.save(file_path_salvataggio)
+
+            # 5. Conferma all'utente
+            self.barra_stato.config(text=f"Salvata in: {os.path.basename(file_path_salvataggio)}")
+            messagebox.showinfo("Salvataggio Completato", f"Immagine salvata con successo come:\n{os.path.basename(file_path_salvataggio)}")
+            
+        except Exception as e:
+            messagebox.showerror("Errore di Salvataggio", f"Si è verificato un problema:\n{e}")
+            import traceback
+            traceback.print_exc()
+
+    # --- LOGICA DI RICERCA E DEBOUNCING ---
+    def _on_search_change(self, event=None):
+        """Si attiva ogni volta che l'utente preme e rilascia un tasto nella barra."""
+        # Se c'è un timer in esecuzione, cancellalo! L'utente sta ancora digitando.
+        if self._search_debounce_job:
+            self.after_cancel(self._search_debounce_job)
+
+        # Imposta un nuovo timer di 300 millisecondi.
+        self._search_debounce_job = self.after(300, self._perform_search)
+
+    def _perform_search(self):
+        """Eseguita alla scadenza del timer."""
+        self._search_debounce_job = None
+        self.cerca_immagini()
+
+    def cerca_immagini(self):
+        """Estrae il testo e avvia il filtraggio."""
+        if not self.directory_corrente:
+            # Se l'utente cerca senza aver aperto una cartella, ignoriamo.
+            return 
+            
+        termine = self.txt_ricerca.get()
+        # Chiamiamo il motore aggiornato passando il termine!
+        self.carica_immagini_da_cartella(self.directory_corrente, termine)
+
     # --- 3. LOGICA DI CARICAMENTO FILE ---
     def apri_cartella(self):
         directory = filedialog.askdirectory(title="Seleziona una cartella", mustexist=True)
@@ -174,54 +324,124 @@ class PannelloGalleria(ttk.Frame):
             except Exception as e:
                 messagebox.showerror("Errore", f"Impossibile aprire l'immagine:\n{e}")
     
-    def carica_immagini_da_cartella(self, directory):
+    def carica_immagini_da_cartella(self, directory, termine_ricerca=""):
         self.immagini = []
         immagini_trovate = []
+        termine_ricerca = termine_ricerca.strip().lower()
+        
+        # --- NOVITÀ: Quali formati sono spuntati in questo momento? ---
+        estensioni_permesse = []
+        for formato, var in self.filtri_ext.items():
+            if var.get(): # Se l'interruttore è su ON (True)
+                # Aggiungiamo le estensioni (es. '.jpg', '.jpeg') alla lista permessa
+                estensioni_permesse.extend(self.SUPPORTED_EXT_MAP[formato])
+        
         try:
             files_in_dir = sorted(os.listdir(directory), key=str.lower)
             for filename in files_in_dir:
                 file_path = os.path.join(directory, filename)
                 if os.path.isfile(file_path):
                     name_lower = filename.lower()
-                    if any(name_lower.endswith(ext) for ext in self.ALL_SUPPORTED_EXT_FLAT):
+                    
+                    # Condizione 1: L'estensione fa parte di quelle attualmente PERMESSE dai filtri?
+                    has_valid_ext = any(name_lower.endswith(ext) for ext in estensioni_permesse)
+                    
+                    # Condizione 2: Soddisfa la barra di ricerca?
+                    matches_search = not termine_ricerca or termine_ricerca in name_lower
+                    
+                    # LOGICA BOOLEANA AND: Deve rispettare entrambe le regole
+                    if has_valid_ext and matches_search:
                         immagini_trovate.append({"path": file_path})
 
             self.immagini = immagini_trovate
             
             if self.immagini:
-                self.barra_stato.config(text=f"Caricate {len(self.immagini)} immagini dalla cartella: {os.path.basename(directory)}")
+                msg = f"Caricate {len(self.immagini)} immagini"
+                if termine_ricerca: msg += f" per '{termine_ricerca}'"
+                self.barra_stato.config(text=msg)
                 self.mostra_griglia()
             else:
-                self.barra_stato.config(text="Nessuna immagine trovata in questa cartella.")
-                messagebox.showinfo("Avviso", "La cartella selezionata non contiene immagini supportate.")
+                for widget in self.frame_griglia_locale.winfo_children():
+                    widget.destroy()
+                self.barra_stato.config(text="Nessuna immagine trovata corrispondente ai filtri attuali.")
+                
         except Exception as e:
             messagebox.showerror("Errore", f"Impossibile leggere la cartella:\n{e}")
 
     # --- 4. MOTORE DELLA GRIGLIA ---
     def mostra_griglia(self):
+        """Prende la lista self.immagini e disegna le miniature (con Scrolling corretto)"""
+        # Svuotiamo la griglia precedente
         for widget in self.frame_griglia_locale.winfo_children():
             widget.destroy()
 
         stile_globale = ttk.Style()
         canvas_bg = stile_globale.lookup('TFrame', 'background')
-        grid_canvas = tk.Canvas(self.frame_griglia_locale, highlightthickness=0, bg=canvas_bg)
-        scrollbar = ttk.Scrollbar(self.frame_griglia_locale, orient=tk.VERTICAL, command=grid_canvas.yview, bootstyle="round")
         
-        scrollable_frame = ttk.Frame(grid_canvas)
-        scrollable_frame.bind("<Configure>", lambda e: grid_canvas.configure(scrollregion=grid_canvas.bbox("all")))
+        # Salviamo canvas e scrollbar come attributi della classe (self.) per usarli nei controlli
+        self.grid_canvas = tk.Canvas(self.frame_griglia_locale, highlightthickness=0, bg=canvas_bg)
+        self.scrollbar = ttk.Scrollbar(self.frame_griglia_locale, orient=tk.VERTICAL, command=self.grid_canvas.yview, bootstyle="round")
         
-        canvas_window = grid_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        grid_canvas.configure(yscrollcommand=scrollbar.set)
+        scrollable_frame = ttk.Frame(self.grid_canvas)
+        canvas_window = self.grid_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        self.grid_canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # --- FIX 1: CALCOLO ESATTO DELLO SPAZIO (Niente scroll a vuoto) ---
+        def _aggiorna_scrollregion(event=None):
+            self.grid_canvas.update_idletasks() # Forza Tkinter a calcolare le misure in tempo reale!
+            bbox = self.grid_canvas.bbox("all")
+            if bbox:
+                self.grid_canvas.configure(scrollregion=bbox)
+                # UX Dinamica: Nascondi la scrollbar se il contenuto è più basso dello schermo
+                if bbox[3] <= self.grid_canvas.winfo_height():
+                    self.scrollbar.pack_forget()
+                else:
+                    self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        scrollable_frame.bind("<Configure>", _aggiorna_scrollregion)
 
         def _on_canvas_configure(event):
             canvas_width = event.width
-            grid_canvas.itemconfig(canvas_window, width=canvas_width)
+            self.grid_canvas.itemconfig(canvas_window, width=canvas_width)
             self._organizza_griglia_items(scrollable_frame, canvas_width)
+            _aggiorna_scrollregion() # Ricalcola lo spazio DOPO aver posizionato le immagini
 
-        grid_canvas.bind("<Configure>", _on_canvas_configure)
+        self.grid_canvas.bind("<Configure>", _on_canvas_configure)
 
-        grid_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.grid_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # La scrollbar viene posizionata dalla funzione _aggiorna_scrollregion
+
+        # --- FIX 2: LA ROTELLINA DEL MOUSE ---
+        def _on_mousewheel(event):
+            # Ignora lo scroll se la scrollbar è nascosta (es. abbiamo solo 2 foto)
+            if self.scrollbar.winfo_ismapped():
+                # Adattiamo il segnale del mouse in base al Sistema Operativo (Windows/Mac/Linux)
+                if sys.platform == "darwin": # Mac
+                    delta = -1 * event.delta
+                elif event.num == 4: # Linux scroll SU
+                    delta = -1
+                elif event.num == 5: # Linux scroll GIÙ
+                    delta = 1
+                else: # Windows
+                    delta = int(-1 * (event.delta / 120))
+                
+                self.grid_canvas.yview_scroll(delta, "units")
+
+        # Per non creare conflitti nel programma, colleghiamo la rotellina SOLO 
+        # quando il puntatore del mouse "Entra" nell'area della griglia
+        def _bind_mousewheel(event):
+            self.grid_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            self.grid_canvas.bind_all("<Button-4>", _on_mousewheel) # Supporto Linux
+            self.grid_canvas.bind_all("<Button-5>", _on_mousewheel)
+
+        # La scolleghiamo quando il mouse "Esce"
+        def _unbind_mousewheel(event):
+            self.grid_canvas.unbind_all("<MouseWheel>")
+            self.grid_canvas.unbind_all("<Button-4>")
+            self.grid_canvas.unbind_all("<Button-5>")
+
+        self.grid_canvas.bind("<Enter>", _bind_mousewheel)
+        self.grid_canvas.bind("<Leave>", _unbind_mousewheel)
 
     def _organizza_griglia_items(self, container_frame, available_width):
         for widget in container_frame.winfo_children():
@@ -327,3 +547,33 @@ class PannelloGalleria(ttk.Frame):
             return photo_image
         except Exception as e:
             return None
+        
+    def mostra_info(self):
+        """Mostra una finestra di dialogo con informazioni in stile più discorsivo."""
+        titolo = f"Informazioni - Galleria Immagini"
+
+        messaggio = f"Galleria Immagini\n\n"
+        messaggio += "Benvenuto! Ecco cosa puoi fare con questa galleria:\n\n"
+
+        messaggio += "APRIRE IMMAGINI:\n"
+        messaggio += "Usa 'Apri Immagine' o 'Apri Cartella' dal menu File o dalla barra degli strumenti per caricare le tue foto.\n\n"
+
+        messaggio += "VISUALIZZARE:\n"
+        messaggio += "Scegli tra 'Griglia' per vedere le miniature o 'Presentazione' per vedere un'immagine ingrandita (menu Visualizza). Scorri tra le immagini usando i tasti freccia sinistra e destra.\n\n"
+
+        messaggio += "ORGANIZZARE:\n"
+        messaggio += "Hai aperto una cartella? Usa il campo 'Cerca' nella toolbar per trovare immagini per nome. Puoi anche filtrare i tipi di file (JPEG, PNG, ecc.) usando gli interruttori colorati in basso.\n\n"
+
+        messaggio += "SALVARE:\n"
+        messaggio += "Seleziona un'immagine e vai su 'File > Salva Immagine Come...' per salvarla, anche in un formato diverso se necessario.\n\n"
+
+        messaggio += "NASCONDERE TESTO (Steganografia):\n"
+        messaggio += "Vuoi nascondere un messaggio segreto? Attiva la 'Modalità Steganografia' (menu o pannello inferiore), seleziona un'immagine (meglio PNG!), scrivi il testo nell'area apposita, clicca 'Nascondi' e salva il nuovo file PNG generato.\n\n"
+
+        messaggio += "ESTRARRE TESTO NASCOSTO:\n"
+        messaggio += "Apri l'immagine che contiene il messaggio, attiva la 'Modalità Steganografia' e clicca 'Estrai'. Il testo segreto apparirà nell'area inferiore.\n\n"
+
+        formati_supportati = ', '.join(sorted(self.SUPPORTED_EXT_MAP.keys()))
+        messaggio += f"Formati Supportati: {formati_supportati}\n"
+        # Mostra la finestra di dialogo. Si chiude cliccando su "OK".
+        messagebox.showinfo(titolo, messaggio)
