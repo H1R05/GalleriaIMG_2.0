@@ -19,46 +19,64 @@ class PannelloLogin(ttk.Frame):
         self.master.destroy()
 
     def _crea_widget_login(self):
-        """Crea fisicamente le etichette, le caselle di testo e il bottone."""
-        frame = ttk.Frame(self, padding=20)
-        frame.pack(fill=tk.BOTH, expand=True)
+        self.card_login = ttk.Frame(self, padding=40)
+        
+        self.card_login.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        ttk.Label(frame, text="Inserisci le credenziali", font=("Arial", 12, "bold")).pack(pady=(0, 15))
 
-        ttk.Label(frame, text="Username:").pack(anchor=tk.W)
-        self.entry_username = ttk.Entry(frame)
-        self.entry_username.pack(fill=tk.X, pady=(0, 10))
+        ttk.Label(self.card_login, text="Accesso di Sicurezza", font=("Segoe UI", 18, "bold")).pack(pady=(0, 5))
+        ttk.Label(self.card_login, text="Inserisci le tue credenziali per continuare", font=("Segoe UI", 10), foreground="gray").pack(pady=(0, 25))
 
-        ttk.Label(frame, text="Password:").pack(anchor=tk.W)
-        self.entry_password = ttk.Entry(frame, show="*")
-        self.entry_password.pack(fill=tk.X, pady=(0, 20))
+        ttk.Label(self.card_login, text="username", font=("Segoe UI", 9, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.ent_username = ttk.Entry(self.card_login, width=35)
+        self.ent_username.pack(fill=tk.X, pady=(0, 15))
 
-        self.btn_accedi = ttk.Button(frame, text="Accedi", command=self._tenta_connessione, bootstyle=PRIMARY)
-        self.btn_accedi.pack(fill=tk.X)
+        ttk.Label(self.card_login, text="password", font=("Segoe UI", 9, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        self.ent_password = ttk.Entry(self.card_login, width=35, show="*")
+        self.ent_password.pack(fill=tk.X, pady=(0, 25))
+
+        self.ent_password.bind("<Return>", lambda e: self._tenta_connessione)
+
+        self.btn_login = ttk.Button(self.card_login, text="Accedi al Sistema", bootstyle="primary", command=self._tenta_connessione)
+        self.btn_login.pack(fill=tk.X, pady=(0, 10))
+
+        ttk.Separator(self.card_login).pack(fill=tk.X, pady=15)
+
+        self.btn_ospite = ttk.Button(self.card_login, text="Accedi come ospite", bootstyle="secondary", command=self._accesso_ospite)
+        self.btn_ospite.pack(fill=tk.X)
+    
+    def _accesso_ospite(self):
+        """
+        Bypassa l'autenticazione verso il server Flask.
+        Passa 'None' come token per attivare la Modalità Offline nella Galleria.
+        """
+        # Ordiniamo al main di cambiare schermata, ma gli diciamo che non c'è alcun token
+        self.app_principale.login_completato(None)
 
     def _tenta_connessione(self):
         """La funzione che scatta quando l'utente preme 'Accedi'."""
-        user = self.entry_username.get()
-        pwd = self.entry_password.get()
+        user = self.ent_username.get()
+        pwd = self.ent_password.get()
 
         if not user or not pwd:
             messagebox.showwarning("Attenzione", "Devi inserire sia username che password.")
             return
-
         url_server = "http://localhost:5000/login"
         dati_da_inviare = {"username": user, "password": pwd}
 
-        self.btn_accedi.config(text="Connessione in corso...", state=tk.DISABLED)
-        self.update()
-
+        self.btn_login.config(text="Connessione in corso...", state=tk.DISABLED)
+        self.update_idletasks()
+        
         try:
             # Il parametro 'timeout=3' è : se il server non risponde in 3 secondi, annulla tutto.
             risposta = req.post(url_server, json=dati_da_inviare, timeout=3)
 
             if risposta.status_code == 200:
                 dati_json = risposta.json()
-                self.master.token_acquisito = dati_json.get("token")
-                self.app_principale.login_completato()
+                token_acquisito = dati_json.get("token")
+                
+                if token_acquisito:
+                    self.app_principale.login_completato(token_acquisito)
             else:
                 messagebox.showerror("Accesso Negato", "Username o password errati.")
                 
@@ -67,4 +85,4 @@ class PannelloLogin(ttk.Frame):
         finally:
             # Qualsiasi cosa succeda (successo o errore), se la finestra esiste ancora, riattivo il bottone)
             if self.winfo_exists():
-                self.btn_accedi.config(text="Accedi", state=tk.NORMAL)
+                self.btn_login.config(text="Accedi", state=tk.NORMAL)
