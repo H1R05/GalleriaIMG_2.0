@@ -102,7 +102,7 @@ class PannelloGalleria(ttk.Frame):
         top_bar_server = ttk.Frame(self.tab_server)
         top_bar_server.pack(fill=tk.X, padx=10, pady=10)
         
-        self.btn_fetch_immagini = ttk.Button(top_bar_server, text="🔄 Sincronizza Immagini Server", bootstyle="info", command=lambda: self.avvia_fetch_immagini())
+        self.btn_fetch_immagini = ttk.Button(top_bar_server, text="Sincronizza Immagini Server", bootstyle="info", command=lambda: self.avvia_fetch_immagini())
         self.btn_fetch_immagini.pack(side=tk.LEFT)
         
         # Area centrale dove mostreremo l'elenco dei file restituiti dal Microservizio Metadati
@@ -575,7 +575,6 @@ class PannelloGalleria(ttk.Frame):
         self.update_idletasks()
 
         try:
-            # MAGIA DELLA LIBRERIA: Una sola riga per estrarre!
             messaggio_decodificato = lsb.reveal(img_path)
 
             if messaggio_decodificato:

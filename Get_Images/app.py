@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from functools import wraps
+from datetime import datetime, timezone
+import pymongo
 import jwt
 import os
 
@@ -14,10 +16,10 @@ SECRET_KEY = "segreto_123"
 CARTELLA_IMMAGINI = "./immagini_server"
 os.makedirs(CARTELLA_IMMAGINI, exist_ok=True)
 
-# (Opzionale: crea un paio di file vuoti per fare i test se la cartella è vuota)
-# open(os.path.join(CARTELLA_IMMAGINI, "car_01.jpg"), 'a').close()
-# open(os.path.join(CARTELLA_IMMAGINI, "person_01.jpg"), 'a').close()
+client = pymongo.MongoClient("mongodb://mongodb:27017/")
 
+db = client["GalleriaImg"]
+col = db["log"]
 
 # --- 2. IL DECORATORE (IL MIDDLEWARE DI SICUREZZA) ---
 # In Python, un decoratore è una funzione che "avvolge" un'altra funzione.
@@ -39,14 +41,15 @@ def token_richiesto(f):
         try:
             # Il server tenta di decriptare il token con la sua SECRET_KEY.
             # Se la chiave è diversa da quella di chi l'ha creato, l'operazione fallisce.
-            jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            dati_utente = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            username = dati_utente.get("user") or dati_utente.get("sub") or "utente_sconosciuto"
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token scaduto. Effettua nuovamente il login.'}), 401
         except jwt.InvalidTokenError:
             return jsonify({'message': 'Token non valido o manomesso.'}), 403
 
         # Se il token è valido, il buttafuori si sposta e lascia eseguire la funzione API
-        return f(*args, **kwargs)
+        return f(username, *args, **kwargs)
     
     return decoratore
 
@@ -55,7 +58,7 @@ def token_richiesto(f):
 # Metodo GET: riceve richieste per ottenere dati (non per scriverli)
 @app.route('/api/images', methods=['GET'])
 @token_richiesto  # Applichiamo il nostro "buttafuori" a questa rotta
-def get_immagini():
+def get_immagini(username_richiedente):
     try:
         # Catturiamo l'etichetta dai Query Parameters dell'URL (es: ?label=car)
         # Se non c'è nessuna etichetta, request.args.get restituisce 'None'
@@ -69,9 +72,13 @@ def get_immagini():
         if etichetta:
             file_filtrati = [f for f in tutti_i_file if etichetta.lower() in f.lower()]
             
-            # --- PREPARAZIONE PER IL PUNTO 3 DEL TUO SCHEMA ---
-            # Qui è dove in futuro il nostro microservizio "metadati" comunicherà
-            # alle spalle dell'utente con il microservizio "Store Data" (MongoDB)
+            #Store_Data
+            nuovo_log = {
+                "username": username_richiedente,
+                "data_ricerca": datetime.now(timezone.utc),
+                "tipo_immagine": etichetta.lower()
+            }
+            col.insert_one(nuovo_log)
             print(f"[LOG STATISTICHE] Rilevata ricerca per: '{etichetta}'. Preparazione log per MongoDB...")
             
         else:

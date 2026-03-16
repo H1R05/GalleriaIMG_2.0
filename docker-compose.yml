@@ -10,7 +10,7 @@ services:
       - dati_mongo:/data/db
 
   auth_api:
-    build: ./servizioAutenticazione
+    build: ./JWT_Generator
     container_name: api_login
     ports:
       - "5000:5000"
@@ -18,13 +18,13 @@ services:
       - mongodb
 
   servizio-metadati:
-    build: ./metadati
+    build: ./Get_Images
     container_name: server_metadati
     ports:
       # Mappiamo la porta 5001 del tuo PC (sinistra) sulla porta 5001 del container (destra)
       - "5001:5001"
     volumes:
-      - ./metadati/immagini_server:/app/immagini_server
+      - ./Get_Images/immagini_server:/app/immagini_server
     environment:
       # Passare la chiave segreta da qui è una best practice per la sicurezza
       - SECRET_KEY=la_tua_chiave_segreta_super_sicura
