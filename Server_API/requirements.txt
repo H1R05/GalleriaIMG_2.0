@@ -1,3 +1,3 @@
-Flask
-PyJWT
-pymongo
+Flask==3.1.3
+PyJWT==2.11.0
+pymongo==4.16.0

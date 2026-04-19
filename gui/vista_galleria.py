@@ -526,12 +526,14 @@ class PannelloGalleria(ttk.Frame):
     def nascondi_messaggio(self):
         """Usa la libreria stegano per nascondere il testo nell'immagine selezionata."""
         if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
-            messagebox.showwarning("Attenzione", "Devi prima cliccare su un'immagine nella griglia per ingrandirla.")
+            self.barra_stato.config(text=" ⚠️ Seleziona prima un'immagine dalla griglia.", bootstyle="inverse-warning")
+            self.after(3000, self._ripristina_barra_stato)
             return
 
         messaggio = self.txt_messaggio_segreto.get().strip()
         if not messaggio or messaggio == "Scrivi qui il messaggio da nascondere...":
-            messagebox.showwarning("Attenzione", "Scrivi un messaggio valido nel campo di testo.")
+            self.barra_stato.config(text=" ⚠️ Inserisci un messaggio valido da nascondere.", bootstyle="inverse-warning")
+            self.after(3000, self._ripristina_barra_stato)
             return
 
         img_path = self.immagini[self.indice_corrente].get("path")
@@ -564,19 +566,19 @@ class PannelloGalleria(ttk.Frame):
                 immagine_segreta.save(file_salvataggio)
                 self.barra_stato.config(text=f" ✅ Salvata in {os.path.basename(file_salvataggio)}", bootstyle="inverse-success")
                 self.after(3000, self._ripristina_barra_stato)
-                messagebox.showinfo("Successo", "Messaggio nascosto correttamente con la libreria stegano.")
             else:
                 self.barra_stato.config(text=" 🟢 Operazione annullata.", bootstyle="inverse-secondary")
 
         except Exception as e:
-            messagebox.showerror("Errore di Steganografia", f"Si è verificato un errore:\n{str(e)}")
+            print(f"Errore di steganografia: {e}")
             self.barra_stato.config(text=" 🔴 Errore durante l'occultamento.", bootstyle="inverse-danger")
             self.after(3000, self._ripristina_barra_stato)
 
     def estrai_messaggio(self):
         """Usa la libreria stegano per estrarre il messaggio."""
         if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
-            messagebox.showwarning("Attenzione", "Devi prima cliccare su un'immagine per analizzarla.")
+            self.barra_stato.config(text=" ⚠️ Seleziona prima un'immagine da analizzare.", bootstyle="inverse-warning")
+            self.after(3000, self._ripristina_barra_stato)
             return
 
         img_path = self.immagini[self.indice_corrente].get("path")
@@ -591,18 +593,15 @@ class PannelloGalleria(ttk.Frame):
                 self.txt_messaggio_segreto.insert(0, messaggio_decodificato)
                 self.barra_stato.config(text=" ✅ Decodifica completata con successo.", bootstyle="inverse-success")
                 self.after(3000, self._ripristina_barra_stato)
-                messagebox.showinfo("Messaggio Segreto Trovato!", f"Ecco il messaggio estratto:\n\n{messaggio_decodificato}")
             else:
                 self.barra_stato.config(text=" ⚠️ Nessun messaggio trovato.", bootstyle="inverse-warning")
                 self.after(3000, self._ripristina_barra_stato)
-                messagebox.showinfo("Nessun Messaggio", "Non è stato trovato alcun messaggio segreto in questa immagine.")
 
         except IndexError:
             self.barra_stato.config(text=" ⚠️ Nessun messaggio compatibile.", bootstyle="inverse-warning")
             self.after(3000, self._ripristina_barra_stato)
-            messagebox.showinfo("Nessun Messaggio", "L'immagine non contiene un messaggio steganografato leggibile.")
         except Exception as e:
-            messagebox.showerror("Errore di Lettura", f"Si è verificato un errore durante l'estrazione:\n{str(e)}")
+            print(f"Errore durante l'estrazione del messaggio: {e}")
             self.barra_stato.config(text=" 🔴 Errore durante l'estrazione.", bootstyle="inverse-danger")
             self.after(3000, self._ripristina_barra_stato)
 
