@@ -10,7 +10,8 @@ Applicazione desktop Python con backend Flask e MongoDB per:
 
 ## Anteprima
 
-![Anteprima GUI](./screenshots/ScreenshotGUI2025.png)
+![Anteprima GUI](./screenshots/ScreenGUI1.png)
+![Anteprima GUI](./screenshots/ScreenGUI2.png)
 
 ## Architettura del progetto
 

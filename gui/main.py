@@ -6,7 +6,7 @@ from login import PannelloLogin
 class ApplicazionePrincipale(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Galleria Immagini")
+        self.title("Galleria Immagini Samu - V2.0")
         self.style = ttk.Style()
         self.style.theme_use("darkly")
         self.geometry("1100x800")
