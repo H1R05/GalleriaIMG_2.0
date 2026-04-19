@@ -11,8 +11,10 @@ Applicazione desktop Python con backend Flask e MongoDB per:
 ## Anteprima
 
 <p align="center">
+  <p align="center">
     <img src="./screenshots/ScreenGUI1.png" width="50%">
     <img src="./screenshots/ScreenGUI2.png" width="50%">
+  </p>
 </p>
 
 
