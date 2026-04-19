@@ -1,96 +1,229 @@
 # Galleria Immagini con Steganografia
 
-Progetto completo per esplorare, filtrare e gestire immagini con una GUI desktop e un backend API dedicato. L'applicazione unisce galleria locale, accesso autenticato, ricerca immagini dal server, metadati e steganografia basata su LSB per nascondere o leggere un messaggio dentro un file PNG.
+Applicazione desktop Python con backend Flask e MongoDB per:
 
-## Cosa fa il progetto
-
-- Mostra immagini locali in modalità griglia o presentazione.
-- Permette ricerca rapida, filtri per formato e navigazione tra le immagini.
-- Consente di nascondere ed estrarre un testo segreto da immagini PNG.
-- Si collega a un server Flask protetto da JWT per recuperare immagini e metadati.
-- Integra un rilevamento YOLO locale e la consultazione dei risultati lato server.
-- Usa Docker Compose per avviare il database MongoDB e la API.
+- gestione immagini locali (griglia, presentazione, ricerca, filtri)
+- autenticazione JWT verso API
+- consultazione immagini e metadati dal server
+- rilevamento oggetti con YOLO locale
+- steganografia LSB su immagini PNG
 
 ## Anteprima
 
 ![Anteprima GUI](./screenshots/ScreenshotGUI2025.png)
 
-## Struttura del progetto
+## Architettura del progetto
 
-- `gui/`: applicazione desktop Tkinter con login, galleria e steganografia.
-- `Server_API/`: server Flask, autenticazione JWT, MongoDB e download immagini.
-- `screenshots/`: immagini di anteprima del progetto.
-- `docker-compose.yml`: avvio del database e del server API.
-
-## Tecnologie usate
-
-- Python 3.x
-- Tkinter + ttkbootstrap
-- Pillow
-- stegano
-- Flask
-- PyJWT
-- pymongo
-- Docker e MongoDB
+- `gui/`: interfaccia desktop Tkinter + ttkbootstrap
+- `Server_API/`: API Flask con JWT e MongoDB
+- `Server_API/immagini_server/`: immagini servite dalla API
+- `docker-compose.yml`: avvio di MongoDB + API
 
 ## Requisiti
 
-Serve Python 3 e, per la parte server, Docker Desktop o un ambiente con Docker e Docker Compose.
+### 1. Software necessario
 
-Le dipendenze sono divise in due file:
+- Python 3.11+ (consigliato)
+- pip aggiornato
+- Docker Desktop (o Docker Engine + Docker Compose)
 
-- `gui/requirements.txt` per la GUI.
-- `Server_API/requirements.txt` per il backend.
+### 2. Dipendenze Python
 
-## Avvio della GUI
+Il progetto usa due requirements ufficiali:
 
-Da Windows:
+- `gui/requirements.txt`
+- `Server_API/requirements.txt`
+
+In base agli import reali della GUI, servono anche:
+
+- `requests`
+- `ultralytics` (per il rilevamento YOLO locale)
+
+## Setup rapido per un nuovo utente
+
+### 1. Clona il repository
 
 ```bash
-\.venv\Scripts\activate
-pip install -r gui\requirements.txt
-python gui\main.py
+git clone https://github.com/H1R05/GalleriaIMG_Steganografia.git
+cd GalleriaIMG_Steganografia
 ```
 
-Su macOS o Linux:
+### 2. Crea e attiva un virtual environment
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Windows CMD:
+
+```bat
+python -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+macOS/Linux:
 
 ```bash
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r gui/requirements.txt
-python gui/main.py
 ```
 
-## Avvio del backend
+### 3. Installa dipendenze
 
-Il server API e MongoDB si avviano con Docker Compose:
+```bash
+pip install --upgrade pip
+pip install -r gui/requirements.txt
+pip install -r Server_API/requirements.txt
+pip install requests ultralytics
+```
+
+Nota: il file del modello `gui/yolov8n.pt` deve essere presente (nel repository c'e' gia').
+
+## Configurazione variabili ambiente
+
+Il `docker-compose.yml` richiede queste variabili:
+
+- `MY_APP_SECRET_KEY`
+- `MY_MONGO_URI`
+
+Crea un file `.env` nella root del progetto:
+
+```env
+MY_APP_SECRET_KEY=metti_una_chiave_lunga_e_sicura
+MY_MONGO_URI=mongodb://mongodb:27017/galleria_cloud
+```
+
+Perche' `mongodb` e non `localhost`? Perche' il server Flask gira nel container e deve raggiungere il servizio MongoDB interno di Docker Compose.
+
+## Avvio backend (API + MongoDB)
+
+Dalla root del progetto:
 
 ```bash
 docker compose up --build
 ```
 
-Il file `docker-compose.yml` si aspetta queste variabili d'ambiente:
+Servizi previsti:
 
-- `MY_APP_SECRET_KEY`
-- `MY_MONGO_URI`
+- API Flask: `http://localhost:5000`
+- MongoDB: `localhost:27017`
 
-## Flusso generale
+Per fermare i servizi:
 
-1. L'utente accede dalla schermata di login.
-2. Se le credenziali sono corrette, la GUI riceve un token JWT.
-3. La galleria mostra immagini locali o immagini fornite dal server.
-4. I metadati vengono letti da MongoDB tramite API.
-5. La steganografia permette di inserire o recuperare un messaggio segreto.
-
-## Steganografia
-
-Il progetto usa la tecnica LSB, cioè la modifica dei bit meno significativi dei pixel. Il risultato visivo dell'immagine resta praticamente invariato, ma il file può contenere informazioni nascoste.
-
-```python
-from stegano import lsb
-
-lsb.hide("input.png", "Messaggio segreto").save("output.png")
-messaggio = lsb.reveal("output.png")
-print(messaggio)
+```bash
+docker compose down
 ```
 
-👨‍💻 **Creato da:** [Samuele](https://github.com/H1R05)  
+## Preparazione dati minimi in MongoDB
+
+L'applicazione login e metadati leggono da MongoDB:
+
+- database: `galleria_cloud`
+- collection utenti: `utenti`
+- collection metadati: `metadati`
+- collection log ricerche: `log_ricerche`
+
+Inserisci almeno un utente nella collection `utenti` per il login standard:
+
+```json
+{
+	"username": "admin",
+	"password": "admin123"
+}
+```
+
+Esempio documento metadati (collection `metadati`):
+
+```json
+{
+	"nomeImmagine": "foto1.jpg",
+	"tipo": "auto",
+	"descrizione": "Auto rossa",
+	"autore": "Mario"
+}
+```
+
+Nota: per la ricerca metadati lato API i campi chiave sono `nomeImmagine` e `tipo`.
+
+## Avvio GUI desktop
+
+Con venv attivo, dalla root del progetto:
+
+```bash
+python gui/main.py
+```
+
+## Modalita' di accesso disponibili
+
+- `Accedi al Sistema`: usa username/password e ottiene JWT dal server
+- `Accedi come ospite`: modalita' offline (senza token/server)
+
+## Guida uso funzionalita'
+
+### 1. Immagini locali
+
+- Apri una cartella o un singolo file immagine
+- Filtra per formato (JPEG, PNG, GIF, BMP)
+- Cerca per nome file
+- Visualizza in griglia o presentazione
+- Salva copia con `Salva Come...`
+
+### 2. Steganografia
+
+- Scrivi un messaggio nel campo in basso
+- Premi `Nascondi Testo` su un'immagine PNG
+- Premi `Estrai Testo` per leggere il messaggio nascosto
+
+### 3. YOLO locale + server
+
+- In presentazione premi `Esegui Rilevamento YOLO`
+- L'etichetta rilevata viene mappata alle categorie: `persona`, `auto`, `treno`, `aereo`, `altro`
+- La tab `Immagini dal Server` consente ricerca file e metadati via API
+
+## API principali (riferimento)
+
+- `POST /login`
+- `GET /api/images?tipoImmagine=...`
+- `GET /api/metadata?nomeImmagine=...&tipo=...`
+- `GET /api/images/download/<path:nome_file>`
+
+Tutte le API sotto `/api/*` richiedono header:
+
+```http
+Authorization: Bearer <jwt>
+```
+
+## Troubleshooting
+
+### Errore login o server non raggiungibile
+
+- verifica che `docker compose up --build` sia attivo
+- controlla che la porta 5000 non sia occupata
+
+### Errore JWT non valido
+
+- assicurati che `MY_APP_SECRET_KEY` sia impostata
+- riavvia i container dopo modifiche al `.env`
+
+### Metadati non trovati
+
+- verifica presenza documento in collection `metadati`
+- controlla corrispondenza esatta di `nomeImmagine` e `tipo`
+
+### YOLO non funziona
+
+- conferma installazione `ultralytics`
+- verifica presenza file `gui/yolov8n.pt`
+
+## Note utili per sviluppo
+
+- Il backend gira in debug nel container (`app.run(..., debug=True)`).
+- Le immagini server sono lette da `Server_API/immagini_server`.
+- Il volume Docker `dati_mongo` mantiene i dati MongoDB persistenti.
+
+## Autore
+
+Samuele - https://github.com/H1R05
