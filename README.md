@@ -58,18 +58,11 @@ cd GalleriaIMG_Steganografia
 
 ### 2. Crea e attiva un virtual environment
 
-Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
 Windows CMD:
 
 ```bat
-python -m venv .venv
-.venv\Scripts\activate.bat
+python -m venv . 
+.\Scripts\activate
 ```
 
 macOS/Linux:
