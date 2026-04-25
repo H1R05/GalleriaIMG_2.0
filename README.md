@@ -103,7 +103,7 @@ Perche' `mongodb` e non `localhost`? Perche' il server Flask gira nel container 
 Dalla root del progetto:
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
 Servizi previsti:
