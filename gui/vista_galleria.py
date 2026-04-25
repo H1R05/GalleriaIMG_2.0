@@ -7,11 +7,9 @@ import sys
 from PIL import Image, ImageTk
 from stegano import lsb
 
-# Importiamo tutte e 4 le funzioni dal nostro nuovo Service Layer
 from rilevazioneYolo import esegui_rilevamento_yolo_locale, richiedi_immagini_server, richiedi_metadati_immagine, scarica_immagine_dal_server
 
 class PannelloGalleria(ttk.Frame):
-    # --- COSTANTI DI CLASSE ---
     ICON_SIZE = (18, 18)
     THUMBNAIL_SIZE = (120, 120) 
     THUMBNAIL_PADDING = 10 
@@ -54,9 +52,7 @@ class PannelloGalleria(ttk.Frame):
         
         self._crea_interfaccia()
 
-    # ==========================================
-    # --- 1. COSTRUZIONE INTERFACCIA (UI) ---
-    # ==========================================
+    # Build della UI
     def _crea_interfaccia(self):
         main_frame = ttk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -67,18 +63,16 @@ class PannelloGalleria(ttk.Frame):
         self.notebook = ttk.Notebook(main_frame, bootstyle="info")
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
-        # Ora che esiste, possiamo agganciargli l'evento!
         self.notebook.bind("<<NotebookTabChanged>>", self._gestisci_cambio_tab)
 
-        # --- TAB LOCALE ---
+        # Tab immagini locali
         self.tab_locale = ttk.Frame(self.notebook)
         self.notebook.add(self.tab_locale, text=" Immagini Locali ")
 
-        # --- TAB SERVER ---
+        # Tab dal server
         self.tab_server = ttk.Frame(self.notebook)
         self.notebook.add(self.tab_server, text=" Immagini dal Server ")
 
-        # COSTRUZIONE AREA LOCALE
         self.frame_griglia_locale = ttk.Frame(self.tab_locale)
         self.frame_griglia_locale.pack(fill=tk.BOTH, expand=True)
 
@@ -105,7 +99,7 @@ class PannelloGalleria(ttk.Frame):
         self.btn_invia_server = ttk.Button(barra_azioni, text="Esegui Rilevamento YOLO", bootstyle="warning", command=self.avvia_chiamata_yolo)
         self.btn_invia_server.pack(side=tk.RIGHT)
 
-        # COSTRUZIONE AREA SERVER
+        # Area immagini dal server
         ttk.Label(self.tab_server, text="Risultati IA dal Server:", font=("Segoe UI", 10, "bold")).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
         # Lista delle immagini
@@ -113,24 +107,20 @@ class PannelloGalleria(ttk.Frame):
         self.lista_immagini_server.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 5))
         self.lista_immagini_server.bind('<<ListboxSelect>>', self._on_selezione_immagine_server)
         # Area inferiore: Metadati e Miniatura Immagine
-        # Rimuoviamo padding=10 da qui per evitare il crash di Python 3.13
         self.frame_metadati_server = ttk.LabelFrame(self.tab_server, text=" Dettagli Immagine ")
         self.frame_metadati_server.pack(fill=tk.X, padx=10, pady=(0, 10))
         
-        # SINISTRA: Spostiamo il padding direttamente sul figlio aggiungendo pady=10 e padx=10
         self.lbl_miniatura_server = ttk.Label(self.frame_metadati_server, text="Seleziona un file\nper visualizzarlo", justify=tk.CENTER)
         self.lbl_miniatura_server.pack(side=tk.LEFT, padx=(10, 15), pady=10)
         
-        # DESTRA: Stessa cosa, aggiungiamo pady=10 e padx=10
         self.testo_metadati_server = tk.Text(self.frame_metadati_server, height=6, state=tk.DISABLED, relief=tk.FLAT, font=("Segoe UI", 10))
         self.testo_metadati_server.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10), pady=10)
-        # ==========================================
-        # --- ZONA INFERIORE (MASTER CONTAINER) ---
-        # ==========================================
+        
+        # Zona inferiore
         self.bottom_container = ttk.Frame(self)
         self.bottom_container.pack(side=tk.BOTTOM, fill=tk.X)
 
-        # 1. BARRA DEI FILTRI
+        # Filtri formato
         self.frame_filtri = ttk.Frame(self.bottom_container)
         self.frame_filtri.pack(side=tk.TOP, fill=tk.X, padx=10, pady=(10, 0))
 
@@ -139,11 +129,11 @@ class PannelloGalleria(ttk.Frame):
             cb = ttk.Checkbutton(self.frame_filtri, text=formato, variable=var, command=self.cerca_immagini, bootstyle="round-toggle")
             cb.pack(side=tk.LEFT, padx=5)
 
-        # 2. PANNELLO STEGANOGRAFIA
+        # Steganografia
         self.frame_stegano = ttk.Frame(self.bottom_container)
         self.frame_stegano.pack(side=tk.TOP, fill=tk.X, padx=10, pady=(10, 10))
         
-        ttk.Label(self.frame_stegano, text="🔒 Steganografia:", font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(self.frame_stegano, text="Steganografia:", font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT, padx=(0, 10))
         
         self.txt_messaggio_segreto = ttk.Entry(self.frame_stegano, width=40)
         self.txt_messaggio_segreto.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
@@ -159,11 +149,11 @@ class PannelloGalleria(ttk.Frame):
         self.btn_estrai = ttk.Button(self.frame_stegano, text="Estrai Testo", bootstyle="info", command=self.estrai_messaggio)
         self.btn_estrai.pack(side=tk.LEFT, padx=2)
             
-        # 3. FOOTER DI SISTEMA E AUTENTICAZIONE
+        # Barra di stato
         self.footer_frame = ttk.Frame(self.bottom_container, bootstyle="secondary")
         self.footer_frame.pack(side=tk.TOP, fill=tk.X)
 
-        self.barra_stato = ttk.Label(self.footer_frame, text=" 🟢 Sistema Pronto", bootstyle="inverse-secondary", font=("Segoe UI", 9))
+        self.barra_stato = ttk.Label(self.footer_frame, text=" Sistema Pronto", bootstyle="inverse-secondary", font=("Segoe UI", 9))
         self.barra_stato.pack(side=tk.LEFT, padx=10, pady=5)
         
         self.lbl_auth_status = ttk.Label(self.footer_frame, font=("Consolas", 9, "bold"))
@@ -224,9 +214,7 @@ class PannelloGalleria(ttk.Frame):
 
         return toolbar
     
-    # ==========================================
-    # --- 2. LOGICA DI NAVIGAZIONE ---
-    # ==========================================
+    # Navigazione tra immagini
     def mostra_precedente(self):
         if not self.immagini or not hasattr(self, 'indice_corrente'): 
             return 
@@ -241,9 +229,7 @@ class PannelloGalleria(ttk.Frame):
         nuovo_indice = (self.indice_corrente + 1) % num_immagini
         self.apri_presentazione(nuovo_indice)
 
-    # ==========================================
-    # --- 3. GESTIONE FILE E RICERCA ---
-    # ==========================================
+    # File, salva, ricerca
     def salva_immagine(self):
         if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
             messagebox.showwarning("Attenzione", "Devi prima cliccare su un'immagine per ingrandirla prima di poterla salvare.")
@@ -292,12 +278,13 @@ class PannelloGalleria(ttk.Frame):
 
                 img_to_save.save(file_path_salvataggio)
 
-            self.barra_stato.config(text=f" 💾 Salvata in: {os.path.basename(file_path_salvataggio)}", bootstyle="inverse-success")
+            self.barra_stato.config(text=f" Salvata in: {os.path.basename(file_path_salvataggio)}", bootstyle="inverse-success")
             messagebox.showinfo("Salvataggio Completato", f"Immagine salvata con successo come:\n{os.path.basename(file_path_salvataggio)}")
         except Exception as e:
             messagebox.showerror("Errore di Salvataggio", f"Si è verificato un problema:\n{e}")
 
     def _on_search_change(self, event=None):
+        # Attesa 300ms prima di fare la ricerca - se digita veloce non scansiono mille volte
         if self._search_debounce_job:
             self.after_cancel(self._search_debounce_job)
         self._search_debounce_job = self.after(300, self._perform_search)
@@ -330,7 +317,7 @@ class PannelloGalleria(ttk.Frame):
                 self.directory_corrente = os.path.dirname(file_path)
                 self.immagini = [{"path": file_path}]
                 nome_file = os.path.basename(file_path)
-                self.barra_stato.config(text=f" 🖼️ Immagine singola caricata: {nome_file}", bootstyle="inverse-secondary")
+                self.barra_stato.config(text=f" Immagine singola caricata: {nome_file}", bootstyle="inverse-secondary")
                 self.mostra_griglia()
             except Exception as e:
                 messagebox.showerror("Errore", f"Impossibile aprire l'immagine:\n{e}")
@@ -340,6 +327,7 @@ class PannelloGalleria(ttk.Frame):
         immagini_trovate = []
         termine_ricerca = termine_ricerca.strip().lower()
         
+        # Raccolta solo i formati che l'utente ha scelto nei checkbox
         estensioni_permesse = []
         for formato, var in self.filtri_ext.items():
             if var.get(): 
@@ -351,6 +339,7 @@ class PannelloGalleria(ttk.Frame):
                 file_path = os.path.join(directory, filename)
                 if os.path.isfile(file_path):
                     name_lower = filename.lower()
+                    # Check: ha estensione giusta? E corrisponde a quello che cerco?
                     has_valid_ext = any(name_lower.endswith(ext) for ext in estensioni_permesse)
                     matches_search = not termine_ricerca or termine_ricerca in name_lower
                     if has_valid_ext and matches_search:
@@ -359,20 +348,18 @@ class PannelloGalleria(ttk.Frame):
             self.immagini = immagini_trovate
             
             if self.immagini:
-                msg = f" 📂 Caricate {len(self.immagini)} immagini"
+                msg = f" Caricate {len(self.immagini)} immagini"
                 if termine_ricerca: msg += f" per '{termine_ricerca}'"
                 self.barra_stato.config(text=msg, bootstyle="inverse-secondary")
                 self.mostra_griglia()
             else:
                 for widget in self.frame_griglia_locale.winfo_children():
                     widget.destroy()
-                self.barra_stato.config(text=" ⚠️ Nessuna immagine trovata corrispondente ai filtri attuali.", bootstyle="inverse-warning")
+                self.barra_stato.config(text=" Nessuna immagine trovata corrispondente ai filtri attuali.", bootstyle="inverse-warning")
         except Exception as e:
             messagebox.showerror("Errore", f"Impossibile leggere la cartella:\n{e}")
 
-    # ==========================================
-    # --- 4. MOTORE DELLA GRIGLIA ---
-    # ==========================================
+    # Griglia di miniature
     def mostra_griglia(self):
         for widget in self.frame_griglia_locale.winfo_children():
             widget.destroy()
@@ -392,6 +379,7 @@ class PannelloGalleria(ttk.Frame):
             bbox = self.grid_canvas.bbox("all")
             if bbox:
                 self.grid_canvas.configure(scrollregion=bbox)
+                # Se tutto sta in una schermata, nascondi la scrollbar
                 if bbox[3] <= self.grid_canvas.winfo_height():
                     self.scrollbar.pack_forget()
                 else:
@@ -439,6 +427,7 @@ class PannelloGalleria(ttk.Frame):
 
         if not self.immagini or available_width <= 1: return
 
+        # Calcolo quante immagini ci stanno per riga - quando ridimensioni la finestra si riadatta
         grid_item_width = self.THUMBNAIL_SIZE[0] + self.THUMBNAIL_PADDING * 2
         cols = max(1, int(available_width // grid_item_width))
 
@@ -455,6 +444,7 @@ class PannelloGalleria(ttk.Frame):
                 photo = ImageTk.PhotoImage(img)
                 
                 img_label = ttk.Label(item_frame, image=photo, bootstyle="inverse-dark")
+                # Devo mantenere il riferimento a photo, altrimenti Python la cancella e non vedi nulla
                 img_label.image = photo 
                 img_label.pack(pady=(0, 5))
 
@@ -485,9 +475,7 @@ class PannelloGalleria(ttk.Frame):
         for c in range(cols):
             container_frame.columnconfigure(c, weight=1, uniform="grid_col")
 
-    # ==========================================
-    # --- 5. PRESENTAZIONE IMMAGINE ---
-    # ==========================================
+    # Presentazione immagine
     def apri_presentazione(self, indice):
         self.indice_corrente = indice
         img_selezionata = self.immagini[indice]["path"]
@@ -520,19 +508,17 @@ class PannelloGalleria(ttk.Frame):
         self.frame_presentazione.pack_forget()
         self.frame_griglia_locale.pack(fill=tk.BOTH, expand=True)
 
-    # ==========================================
-    # --- 6. STEGANOGRAFIA (Libreria Stegano) ---
-    # ==========================================
+    # Steganografia
     def nascondi_messaggio(self):
         """Usa la libreria stegano per nascondere il testo nell'immagine selezionata."""
         if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
-            self.barra_stato.config(text=" ⚠️ Seleziona prima un'immagine dalla griglia.", bootstyle="inverse-warning")
+            self.barra_stato.config(text=" Seleziona prima un'immagine dalla griglia.", bootstyle="inverse-warning")
             self.after(3000, self._ripristina_barra_stato)
             return
 
         messaggio = self.txt_messaggio_segreto.get().strip()
         if not messaggio or messaggio == "Scrivi qui il messaggio da nascondere...":
-            self.barra_stato.config(text=" ⚠️ Inserisci un messaggio valido da nascondere.", bootstyle="inverse-warning")
+            self.barra_stato.config(text=" Inserisci un messaggio valido da nascondere.", bootstyle="inverse-warning")
             self.after(3000, self._ripristina_barra_stato)
             return
 
@@ -548,7 +534,7 @@ class PannelloGalleria(ttk.Frame):
             if not risposta:
                 return
 
-        self.barra_stato.config(text=" ⚙️ Iniezione del messaggio in corso...", bootstyle="inverse-primary")
+        self.barra_stato.config(text=" Iniezione del messaggio in corso...", bootstyle="inverse-primary")
         self.update_idletasks()
 
         try:
@@ -564,25 +550,25 @@ class PannelloGalleria(ttk.Frame):
 
             if file_salvataggio:
                 immagine_segreta.save(file_salvataggio)
-                self.barra_stato.config(text=f" ✅ Salvata in {os.path.basename(file_salvataggio)}", bootstyle="inverse-success")
+                self.barra_stato.config(text=f" Salvata in {os.path.basename(file_salvataggio)}", bootstyle="inverse-success")
                 self.after(3000, self._ripristina_barra_stato)
             else:
-                self.barra_stato.config(text=" 🟢 Operazione annullata.", bootstyle="inverse-secondary")
+                self.barra_stato.config(text=" Operazione annullata.", bootstyle="inverse-secondary")
 
         except Exception as e:
             print(f"Errore di steganografia: {e}")
-            self.barra_stato.config(text=" 🔴 Errore durante l'occultamento.", bootstyle="inverse-danger")
+            self.barra_stato.config(text=" Errore durante l'occultamento.", bootstyle="inverse-danger")
             self.after(3000, self._ripristina_barra_stato)
 
     def estrai_messaggio(self):
         """Usa la libreria stegano per estrarre il messaggio."""
         if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
-            self.barra_stato.config(text=" ⚠️ Seleziona prima un'immagine da analizzare.", bootstyle="inverse-warning")
+            self.barra_stato.config(text=" Seleziona prima un'immagine da analizzare.", bootstyle="inverse-warning")
             self.after(3000, self._ripristina_barra_stato)
             return
 
         img_path = self.immagini[self.indice_corrente].get("path")
-        self.barra_stato.config(text=" 🔍 Decodifica in corso...", bootstyle="inverse-info")
+        self.barra_stato.config(text=" Decodifica in corso...", bootstyle="inverse-info")
         self.update_idletasks()
 
         try:
@@ -591,23 +577,21 @@ class PannelloGalleria(ttk.Frame):
             if messaggio_decodificato:
                 self.txt_messaggio_segreto.delete(0, tk.END)
                 self.txt_messaggio_segreto.insert(0, messaggio_decodificato)
-                self.barra_stato.config(text=" ✅ Decodifica completata con successo.", bootstyle="inverse-success")
+                self.barra_stato.config(text=" Decodifica completata con successo.", bootstyle="inverse-success")
                 self.after(3000, self._ripristina_barra_stato)
             else:
-                self.barra_stato.config(text=" ⚠️ Nessun messaggio trovato.", bootstyle="inverse-warning")
+                self.barra_stato.config(text=" Nessun messaggio trovato.", bootstyle="inverse-warning")
                 self.after(3000, self._ripristina_barra_stato)
 
         except IndexError:
-            self.barra_stato.config(text=" ⚠️ Nessun messaggio compatibile.", bootstyle="inverse-warning")
+            self.barra_stato.config(text=" Nessun messaggio compatibile.", bootstyle="inverse-warning")
             self.after(3000, self._ripristina_barra_stato)
         except Exception as e:
             print(f"Errore durante l'estrazione del messaggio: {e}")
-            self.barra_stato.config(text=" 🔴 Errore durante l'estrazione.", bootstyle="inverse-danger")
+            self.barra_stato.config(text=" Errore durante l'estrazione.", bootstyle="inverse-danger")
             self.after(3000, self._ripristina_barra_stato)
 
-    # ==========================================
-    # --- 7. LOGICA DI RILEVAMENTO E RETE ---
-    # ==========================================
+    # Rilevamento YOLO e server
     def avvia_chiamata_yolo(self):
         """Avvia l'analisi visiva della foto usando l'IA locale."""
         if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
@@ -616,8 +600,8 @@ class PannelloGalleria(ttk.Frame):
 
         img_path = self.immagini[self.indice_corrente].get("path")
         
-        self.btn_invia_server.config(text="⏳ Analisi IA in corso...", state=tk.DISABLED)
-        self.barra_stato.config(text=" 🧠 Rilevamento YOLO locale in corso...", bootstyle="inverse-warning")
+        self.btn_invia_server.config(text="Analisi IA in corso...", state=tk.DISABLED)
+        self.barra_stato.config(text=" Rilevamento YOLO locale in corso...", bootstyle="inverse-warning")
         
         esegui_rilevamento_yolo_locale(img_path, self._ricevi_risposta_yolo)
 
@@ -629,9 +613,7 @@ class PannelloGalleria(ttk.Frame):
         self.barra_stato.config(text=f" {messaggio_esito}", bootstyle=bootstyle_stato)
         
         if etichetta_dominante:
-            # 🎯 Invece di mostrare un messagebox bloccante, aggiorniamo direttamente la UI e avanziamo
-            self.barra_stato.config(text=f" ✅ Rilevato: {etichetta_dominante}. Ricerca immagini simili...", bootstyle="inverse-success")
-            # Passiamo al tab server per mostrare i risultati in tempo reale
+            self.barra_stato.config(text=f" Rilevato: {etichetta_dominante}. Ricerca immagini simili...", bootstyle="inverse-success")
             self.notebook.select(1)  # Passa al tab server
             self.avvia_fetch_immagini(termine_ricerca=etichetta_dominante)
         elif "Errore" in messaggio_esito:
@@ -647,21 +629,21 @@ class PannelloGalleria(ttk.Frame):
             messagebox.showerror("Accesso Negato", "Devi effettuare l'accesso per visualizzare i file del server.")
             return
 
-        # --- LA MODIFICA È QUI: Salviamo in memoria il tipo di ricerca attuale ---
+        # Salvataggio in memoria il tipo di ricerca attuale 
         self.tipo_ricerca_attuale = termine_ricerca if termine_ricerca else "altro"
 
-        # Prepariamo la grafica - PULISCIAMO TUTTO
+        # Preparazione la grafica 
         self.lista_immagini_server.delete(0, tk.END)
         self.lista_immagini_server.insert(tk.END, "In attesa di risposta dal server...")
         
-        # Puliamo la vecchia miniatura e i metadati
+        # Pulizia della vecchia miniatura e i metadati
         self.lbl_miniatura_server.config(image='', text="Seleziona un file\nper visualizzarlo")
         self.lbl_miniatura_server.image = None
         self.testo_metadati_server.config(state=tk.NORMAL)
         self.testo_metadati_server.delete(1.0, tk.END)
         self.testo_metadati_server.config(state=tk.DISABLED)
         
-        self.barra_stato.config(text=" 📡 Richiesta dati al server...", bootstyle="inverse-info")
+        self.barra_stato.config(text=" Richiesta dati al server...", bootstyle="inverse-info")
 
         richiedi_immagini_server(token, termine_ricerca, self._ricevi_lista_server)
     def _ricevi_lista_server(self, successo, dati_restituiti):
@@ -674,15 +656,15 @@ class PannelloGalleria(ttk.Frame):
             lista_file = dati_restituiti
             if not lista_file:
                 self.lista_immagini_server.insert(tk.END, "Nessuna immagine trovata sul server per questa ricerca.")
-                self.barra_stato.config(text=" ✅ Ricerca completata (Nessun risultato).", bootstyle="inverse-success")
+                self.barra_stato.config(text=" Ricerca completata (Nessun risultato).", bootstyle="inverse-success")
             else:
                 for file in lista_file:
-                    self.lista_immagini_server.insert(tk.END, f"📄 {file}")
-                self.barra_stato.config(text=f" ✅ Sincronizzazione completata: {len(lista_file)} file trovati.", bootstyle="inverse-success")
+                    self.lista_immagini_server.insert(tk.END, file)
+                self.barra_stato.config(text=f" Sincronizzazione completata: {len(lista_file)} file trovati.", bootstyle="inverse-success")
         else:
             errore = dati_restituiti
             self.lista_immagini_server.insert(tk.END, errore)
-            self.barra_stato.config(text=" 🔴 Errore di connessione al server.", bootstyle="inverse-danger")
+            self.barra_stato.config(text=" Errore di connessione al server.", bootstyle="inverse-danger")
             
         self.after(4000, self._ripristina_barra_stato)
 
@@ -691,28 +673,28 @@ class PannelloGalleria(ttk.Frame):
         if not selezione: return
             
         testo_riga = self.lista_immagini_server.get(selezione[0])
-        percorso_relativo_server = testo_riga.replace("📄 ", "").strip()
+        percorso_relativo_server = testo_riga.strip()
         nome_file = os.path.basename(percorso_relativo_server)
         
         token = getattr(self.app_principale, "token_jwt", None)
         if not token: return
 
-        self.barra_stato.config(text=f" 🔍 Recupero dati per {percorso_relativo_server}...", bootstyle="inverse-info")
+        self.barra_stato.config(text=f" Recupero dati per {percorso_relativo_server}...", bootstyle="inverse-info")
         
-        # Svuotiamo i pannelli vecchi
+        # Svuota i pannelli vecchi
         self.testo_metadati_server.config(state=tk.NORMAL)
         self.testo_metadati_server.delete(1.0, tk.END)
         self.testo_metadati_server.insert(tk.END, "Scaricamento in corso...")
         self.testo_metadati_server.config(state=tk.DISABLED)
         self.lbl_miniatura_server.config(image='', text="Caricamento foto...")
 
-        # --- LA MODIFICA È QUI: Recuperiamo il tipo e lo passiamo alla funzione ---
+        # Recupera il tipo e lo passa alla funzione 
         tipo_corrente = getattr(self, "tipo_ricerca_attuale", "altro")
         
-        # 1. Chiediamo i testi (ORA CON 4 PARAMETRI ESATTI!)
+        # 1. Chiede i testi (ORA CON 4 PARAMETRI ESATTI)
         richiedi_metadati_immagine(token, nome_file, tipo_corrente, self._ricevi_metadati_server)
         
-        # 2. Chiediamo la foto fisica
+        # 2. Chiede la foto fisica
         scarica_immagine_dal_server(token, percorso_relativo_server, self._ricevi_immagine_fisica)
     def _ricevi_metadati_server(self, successo, dati_restituiti):
         self.after(0, lambda: self._mostra_dettagli_metadati(successo, dati_restituiti))
@@ -745,18 +727,16 @@ class PannelloGalleria(ttk.Frame):
             self.lbl_miniatura_server.config(image=photo, text="")
             self.lbl_miniatura_server.image = photo 
         else:
-            self.lbl_miniatura_server.config(image='', text="❌ Immagine non\ndisponibile")
+            self.lbl_miniatura_server.config(image='', text="Immagine non\ndisponibile")
 
-    # ==========================================
-    # --- 8. FUNZIONI DI SUPPORTO ---
-    # ==========================================
+    # Funzioni utility
     def aggiorna_stato_auth(self):
         token_completo = getattr(self.app_principale, "token_jwt", None)
-        testo_auth = "🔴 Modalità Offline"
+        testo_auth = "Modalità Offline"
         colore_testo = "warning"
         
         if token_completo:
-            testo_auth = f"🟢 Accesso Effettuato"
+            testo_auth = f"Accesso Effettuato"
             colore_testo = "success"
             
         if hasattr(self, 'lbl_auth_status'):
@@ -787,23 +767,23 @@ class PannelloGalleria(ttk.Frame):
         """
         Controlla quale scheda è attiva e blocca/sblocca la steganografia.
         """
-        # Identifichiamo l'indice della scheda selezionata
+        # Identifica l'indice della scheda selezionata
         indice_tab = self.notebook.index(self.notebook.select())
         
         # 0 = Immagini Locali, 1 = Immagini dal Server
         if indice_tab == 1:
-            # Blocchiamo i widget
+            # Blocca i widget
             self.txt_messaggio_segreto.config(state=tk.DISABLED)
             self.btn_nascondi.config(state=tk.DISABLED)
             self.btn_estrai.config(state=tk.DISABLED)
             
-            # Notifichiamo l'utente tramite la barra di stato
+            # Notifica l'utente tramite la barra di stato
             self.barra_stato.config(
-                text=" 🔒 Steganografia non disponibile per le immagini del server.",
+                text=" Steganografia non disponibile per le immagini del server.",
                 bootstyle="inverse-warning"
             )
         else:
-            # Sblocchiamo tutto quando torniamo nel tab locale
+            # Sblocca tutto quando torniamo nel tab locale
             self.txt_messaggio_segreto.config(state=tk.NORMAL)
             self.btn_nascondi.config(state=tk.NORMAL)
             self.btn_estrai.config(state=tk.NORMAL)

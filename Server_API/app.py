@@ -7,7 +7,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# --- CONFIGURAZIONE ---
+# Setup app e variabili globali
 SECRET_KEY = os.environ.get("SECRET_KEY") 
 CARTELLA_IMMAGINI = "./immagini_server"
 os.makedirs(CARTELLA_IMMAGINI, exist_ok=True)
@@ -21,18 +21,18 @@ TIPO_TO_FOLDER = {
 }
 ESTENSIONI_IMMAGINE = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
 
-# --- CONNESSIONE AL DATABASE CLOUD/LOCALE ---
+# Connessione MongoDB
 MONGO_URI = os.environ.get("MONGO_URI") 
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client['galleria_cloud']
-    collezione_utenti = db['utenti']
-    collezione_metadati = db['metadati'] # Da popolare manualmente come da PDF
+    collezione_utenti = db['utenti'] # Da popolare manualmente
+    collezione_metadati = db['metadati'] # Da popolare manualmente
     collezione_log = db['log_ricerche'] 
 except Exception as e:
     print(f"Errore MongoDB: {e}")
 
-# --- MIDDLEWARE JWT ---
+# Auth con JWT
 def token_richiesto(f):
     @wraps(f)
     def decoratore(*args, **kwargs):
@@ -42,6 +42,7 @@ def token_richiesto(f):
             if len(parti) == 2: token = parti[1]
         if not token: return jsonify({'message': 'JWT mancante'}), 401
         try:
+            # Se il token è stato modificato, JWT ci avvisa subito - non passa la validazione
             dati_utente = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
             username = dati_utente.get("username", "sconosciuto")
         except:
@@ -62,9 +63,7 @@ def _lista_immagini_relative(directory_base):
             immagini.append(percorso_relativo.replace("\\", "/"))
     return sorted(immagini, key=str.lower)
 
-# =========================================================
-# 1. JWT GENERATOR (Pagina 5 del PDF)
-# =========================================================
+# Login e generazione token
 @app.route('/login', methods=['POST'])
 def login():
     dati = request.get_json()
@@ -79,9 +78,7 @@ def login():
         return jsonify({'token': token}), 200
     return jsonify({'message': 'Credenziali errate'}), 401
 
-# =========================================================
-# 2. GET IMAGES & STORE DATA (Pagina 5 del PDF)
-# =========================================================
+# Recupera immagini dal server
 @app.route('/api/images', methods=['GET'])
 @token_richiesto
 def get_images(username_richiedente):
@@ -114,9 +111,7 @@ def get_images(username_richiedente):
 
     return jsonify({"images": file_filtrati}), 200
 
-# =========================================================
-# 3. GET METADATA (Pagina 5 del PDF)
-# =========================================================
+# Leggi i metadati
 @app.route('/api/metadata', methods=['GET'])
 @token_richiesto
 def get_metadata(username_richiedente):
@@ -131,14 +126,13 @@ def get_metadata(username_richiedente):
         return jsonify(dati_immagine), 200
     return jsonify({"error": "Metadati non trovati. Li hai caricati manualmente su MongoDB?"}), 404
 
-# =========================================================
-# 4. DOWNLOAD IMMAGINE FISICA (Per evitare "Immagine non disponibile")
-# =========================================================
+# Download dei file
 @app.route('/api/images/download/<path:nome_file>', methods=['GET'])
 @token_richiesto
 def scarica_immagine_fisica(username_richiedente, nome_file):
     try:
         percorso_norm = os.path.normpath(nome_file)
+        # Non possiamo permettere che qualcuno risalga le directory con "../" per scaricare file random dal server
         if percorso_norm.startswith(".."):
             return jsonify({"error": "Percorso non valido"}), 400
         return send_from_directory(CARTELLA_IMMAGINI, percorso_norm)

@@ -1,0 +1,87 @@
+[{
+  "_id": {
+    "$oid": "69ce7f8aa7de718f5e15a561"
+  },
+  "tipo": "auto",
+  "marca": "BMW",
+  "modello": "Series 3",
+  "nomeImmagine": "auto_1.jpg"
+},
+{
+  "_id": {
+    "$oid": "69ce7f99a7de718f5e15a563"
+  },
+  "tipo": "persona",
+  "genere": "M",
+  "nomeImmagine": "persona_1.jpg"
+},
+{
+  "_id": {
+    "$oid": "69de09411d46c1580b7dbcd4"
+  },
+  "tipo": "persona",
+  "genere": "F",
+  "nomeImmagine": "persona_2.jpg"
+},
+{
+  "_id": {
+    "$oid": "69de09581d46c1580b7dbcd5"
+  },
+  "tipo": "auto",
+  "marca": "Lamborghini",
+  "modello": "Aventador",
+  "nomeImmagine": "auto_2.jpg"
+},
+{
+  "_id": {
+    "$oid": "69de09fe1d46c1580b7dbcd6"
+  },
+  "tipo": "treno",
+  "nomeImmagine": "treno_1.jpg",
+  "annoProduzione": "2000"
+},
+{
+  "_id": {
+    "$oid": "69de0a631d46c1580b7dbcd7"
+  },
+  "tipo": "treno",
+  "nomeImmagine": "treno_2.jpg",
+  "annoProduzione": "1970"
+},
+{
+  "_id": {
+    "$oid": "69de0a911d46c1580b7dbcd8"
+  },
+  "tipo": "aereo",
+  "nomeImmagine": "aereo_1.jpg",
+  "modello": "Aereo di linea"
+},
+{
+  "_id": {
+    "$oid": "69de0af61d46c1580b7dbcd9"
+  },
+  "tipo": "aereo",
+  "nomeImmagine": "aereo_2.jpg",
+  "modello": "Jet privato"
+},
+{
+  "_id": {
+    "$oid": "69de0b5c1d46c1580b7dbcda"
+  },
+  "tipo": "altro",
+  "nomeImmagine": "saturn_1.jpg"
+},
+{
+  "_id": {
+    "$oid": "69de0b861d46c1580b7dbcdb"
+  },
+  "tipo": "altro",
+  "nomeImmagine": "space_shuttle_1.jpg"
+},
+{
+  "_id": {
+    "$oid": "69de0b961d46c1580b7dbcdc"
+  },
+  "tipo": "altro",
+  "nomeImmagine": "telescopio_1.jpg"
+}]

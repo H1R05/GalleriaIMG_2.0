@@ -11,7 +11,6 @@ class PannelloLogin(ttk.Frame):
         
         self.app_principale = master_app
 
-        # Chiamiamo la funzione che "arreda" la stanza
         self._crea_widget_login()
 
     def chiusura_forzata(self):
@@ -25,6 +24,10 @@ class PannelloLogin(ttk.Frame):
         ttk.Label(self.card_login, text="Accesso di Sicurezza", font=("Segoe UI", 18, "bold")).pack(pady=(0, 5))
         ttk.Label(self.card_login, text="Inserisci le tue credenziali per continuare", font=("Segoe UI", 10), foreground="gray").pack(pady=(0, 25))
 
+        # Area per mostrare gli errori
+        self.lbl_errore = ttk.Label(self.card_login, text="", font=("Segoe UI", 9), foreground="red")
+        self.lbl_errore.pack(anchor=tk.W, pady=(0, 15), fill=tk.X)
+
         ttk.Label(self.card_login, text="username", font=("Segoe UI", 9, "bold")).pack(anchor=tk.W, pady=(0, 5))
         self.ent_username = ttk.Entry(self.card_login, width=35)
         self.ent_username.pack(fill=tk.X, pady=(0, 15))
@@ -33,8 +36,6 @@ class PannelloLogin(ttk.Frame):
         self.ent_password = ttk.Entry(self.card_login, width=35, show="*")
         self.ent_password.pack(fill=tk.X, pady=(0, 25))
 
-        # --- CORREZIONE APPLICATA QUI ---
-        # Aggiunte le parentesi tonde per far ESEGUIRE la funzione quando si preme Invio
         self.ent_password.bind("<Return>", lambda e: self._tenta_connessione())
 
         self.btn_login = ttk.Button(self.card_login, text="Accedi al Sistema", bootstyle="primary", command=self._tenta_connessione)
@@ -44,13 +45,11 @@ class PannelloLogin(ttk.Frame):
 
         self.btn_ospite = ttk.Button(self.card_login, text="Accedi come ospite", bootstyle="secondary", command=self._accesso_ospite)
         self.btn_ospite.pack(fill=tk.X)
+        
+        self._timer_errore = None
     
     def _accesso_ospite(self):
-        """
-        Bypassa l'autenticazione verso il server Flask.
-        Passa 'None' come token per attivare la Modalità Offline nella Galleria.
-        """
-        # Ordiniamo al main di cambiare schermata, ma gli diciamo che non c'è alcun token
+        """Salta il login e va diretto nella galleria - utile per lavorare offline."""
         self.app_principale.login_completato(None)
 
     def _tenta_connessione(self):
@@ -59,7 +58,7 @@ class PannelloLogin(ttk.Frame):
         pwd = self.ent_password.get()
 
         if not user or not pwd:
-            messagebox.showwarning("Attenzione", "Devi inserire sia username che password.")
+            self._mostra_errore("Inserisci username e password")
             return
             
         url_server = "http://localhost:5000/login"
@@ -69,7 +68,7 @@ class PannelloLogin(ttk.Frame):
         self.update_idletasks()
         
         try:
-            # Il parametro 'timeout=3' è vitale: se il server non risponde in 3 secondi, annulla tutto.
+            # Timeout di 3 secondi - altrimenti se il server non c'è l'interfaccia si blocca
             risposta = req.post(url_server, json=dati_da_inviare, timeout=3)
 
             if risposta.status_code == 200:
@@ -79,11 +78,18 @@ class PannelloLogin(ttk.Frame):
                 if token_acquisito:
                     self.app_principale.login_completato(token_acquisito)
             else:
-                messagebox.showerror("Accesso Negato", "Username o password errati.")
+                self._mostra_errore("Username o password errati")
                 
         except req.exceptions.ConnectionError:
-             messagebox.showerror("Errore di Rete", "Impossibile contattare il server.\nHai acceso il container Docker?")
+             self._mostra_errore("Server non raggiungibile - Docker acceso?")
         finally:
-            # Qualsiasi cosa succeda (successo o errore), se la finestra esiste ancora, riattiva il bottone
             if self.winfo_exists():
                 self.btn_login.config(text="Accedi al Sistema", state=tk.NORMAL)
+    
+    def _mostra_errore(self, messaggio):
+        """Mostra un messaggio di errore nel label e lo nasconde dopo 4 secondi."""
+        if self._timer_errore:
+            self.after_cancel(self._timer_errore)
+        
+        self.lbl_errore.config(text=messaggio)
+        self._timer_errore = self.after(4000, lambda: self.lbl_errore.config(text=""))

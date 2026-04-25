@@ -1,32 +1,28 @@
 version: '3.8'
 
 services:
-  # 1. IL DATABASE
+  # DATABASE
   mongodb:
     image: mongo:latest
     container_name: database_mongo
     ports:
       - "27017:27017"
     volumes:
-      # Fondamentale: salviamo i dati del DB sul tuo disco per non perderli ai riavvii
+      # salvare i dati del DB sul disco per non perderli ai riavvii
       - dati_mongo:/data/db
 
-  # 2. IL SERVER API
+  # SERVER API
   server_principale:
     build: ./Server_API
     container_name: api_centrale
     ports:
       - "5000:5000"
     depends_on:
-      # Programmazione difensiva: accendi prima il DB, poi il server Python
+      #accende prima il DB, poi il server Python
       - mongodb
     environment:
       - SECRET_KEY=${MY_APP_SECRET_KEY}
       - MONGO_URI=${MY_MONGO_URI}
 
 volumes:
-  # Dichiariamo il volume persistente per il database
   dati_mongo:
-
-#Avvio
-#docker-compose up --build

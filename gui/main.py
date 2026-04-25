@@ -1,6 +1,5 @@
 import tkinter as tk
 import ttkbootstrap as ttk
-#Importiamo il mattoncino che abbiamo creato nell'altro file!
 from login import PannelloLogin
 
 class ApplicazionePrincipale(tk.Tk):
@@ -19,29 +18,21 @@ class ApplicazionePrincipale(tk.Tk):
 
     def login_completato(self, token_ricevuto):
         """Viene innescato da login.py quando l'accesso ha successo."""
-        # Import differito: evita di caricare subito moduli pesanti all'avvio app.
+        # Carico i moduli pesanti solo qui, non all'avvio
         from vista_galleria import PannelloGalleria
         
-        # 1. Salviamo il token (nota: token_ricevuto NON ha il self davanti!)
+        # Salvo il token per le future richieste al server
         self.token_jwt = token_ricevuto
-        
-        # Stampiamo in console per fare debug da sistemisti
         print(f"Login effettuato! Token salvato in memoria: {self.token_jwt}")
 
-        # 2. Distruggiamo visivamente il pannello di login
-        # (Assicurati che il nome sia corretto. Se nel tuo def __init__ 
-        # lo avevi chiamato self.panello_login, usa quello!)
+        # Tolgo di mezzo il login e carico la galleria
         if hasattr(self, "panello_login"):
             self.panello_login.pack_forget()
 
-        # 3. Creiamo la Galleria e la posizioniamo a schermo
         self.pannello_galleria = PannelloGalleria(self)
         self.pannello_galleria.pack(fill=tk.BOTH, expand=True)
-        
-        # 4. Ordiniamo alla galleria di leggere la memoria e dipingere il footer
         self.pannello_galleria.aggiorna_stato_auth()
 
-# Il blocco di esecuzione standard
 if __name__ == "__main__":
     app = ApplicazionePrincipale()
     app.mainloop()
