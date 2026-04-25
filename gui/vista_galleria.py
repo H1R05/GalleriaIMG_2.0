@@ -105,7 +105,7 @@ class PannelloGalleria(ttk.Frame):
         # Lista delle immagini
         self.lista_immagini_server = tk.Listbox(self.tab_server, font=("Consolas", 11), height=8)
         self.lista_immagini_server.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 5))
-        self.lista_immagini_server.bind('<<ListboxSelect>>', self._on_selezione_immagine_server)
+        self.lista_immagini_server.bind('<Button-1>', self._on_selezione_immagine_server)
         # Area inferiore: Metadati e Miniatura Immagine
         self.frame_metadati_server = ttk.LabelFrame(self.tab_server, text=" Dettagli Immagine ")
         self.frame_metadati_server.pack(fill=tk.X, padx=10, pady=(0, 10))
@@ -669,15 +669,49 @@ class PannelloGalleria(ttk.Frame):
         self.after(4000, self._ripristina_barra_stato)
 
     def _on_selezione_immagine_server(self, event):
-        selezione = self.lista_immagini_server.curselection()
-        if not selezione: return
-            
-        testo_riga = self.lista_immagini_server.get(selezione[0])
+        indice_click = self.lista_immagini_server.nearest(event.y)
+        bbox = self.lista_immagini_server.bbox(indice_click)
+        if not bbox:
+            self.lista_immagini_server.selection_clear(0, tk.END)
+            self.lbl_miniatura_server.config(image='', text="Seleziona un file\nper visualizzarlo")
+            self.lbl_miniatura_server.image = None
+            self.testo_metadati_server.config(state=tk.NORMAL)
+            self.testo_metadati_server.delete(1.0, tk.END)
+            self.testo_metadati_server.config(state=tk.DISABLED)
+            return "break"
+
+        _, y, _, altezza = bbox
+        if not (y <= event.y <= y + altezza):
+            self.lista_immagini_server.selection_clear(0, tk.END)
+            self.lbl_miniatura_server.config(image='', text="Seleziona un file\nper visualizzarlo")
+            self.lbl_miniatura_server.image = None
+            self.testo_metadati_server.config(state=tk.NORMAL)
+            self.testo_metadati_server.delete(1.0, tk.END)
+            self.testo_metadati_server.config(state=tk.DISABLED)
+            return "break"
+
+        self.lista_immagini_server.selection_clear(0, tk.END)
+        self.lista_immagini_server.selection_set(indice_click)
+        self.lista_immagini_server.activate(indice_click)
+
+        testo_riga = self.lista_immagini_server.get(indice_click)
+        if (
+            testo_riga == "Nessuna immagine trovata sul server per questa ricerca."
+            or testo_riga.startswith("Errore")
+        ):
+            self.lbl_miniatura_server.config(image='', text="Seleziona un file\nper visualizzarlo")
+            self.lbl_miniatura_server.image = None
+            self.testo_metadati_server.config(state=tk.NORMAL)
+            self.testo_metadati_server.delete(1.0, tk.END)
+            self.testo_metadati_server.config(state=tk.DISABLED)
+            return "break"
+
         percorso_relativo_server = testo_riga.strip()
         nome_file = os.path.basename(percorso_relativo_server)
         
         token = getattr(self.app_principale, "token_jwt", None)
-        if not token: return
+        if not token:
+            return "break"
 
         self.barra_stato.config(text=f" Recupero dati per {percorso_relativo_server}...", bootstyle="inverse-info")
         
@@ -696,6 +730,7 @@ class PannelloGalleria(ttk.Frame):
         
         # 2. Chiede la foto fisica
         scarica_immagine_dal_server(token, percorso_relativo_server, self._ricevi_immagine_fisica)
+        return "break"
     def _ricevi_metadati_server(self, successo, dati_restituiti):
         self.after(0, lambda: self._mostra_dettagli_metadati(successo, dati_restituiti))
 
@@ -767,7 +802,7 @@ class PannelloGalleria(ttk.Frame):
         """
         Controlla quale scheda è attiva e blocca/sblocca la steganografia.
         """
-        # Identifica l'indice della scheda selezionata
+        # Identificazione  dell'indice della scheda selezionata
         indice_tab = self.notebook.index(self.notebook.select())
         
         # 0 = Immagini Locali, 1 = Immagini dal Server

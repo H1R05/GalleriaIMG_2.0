@@ -12,20 +12,20 @@ class ApplicazionePrincipale(tk.Tk):
         self.minsize(1100, 800)
         self.token_acquisito = None
 
-        # Passo 'self' come argomento, dicendogli: "Io sono il tuo master (genitore)"
+        # Passa 'self' come argomento, dicendogli: "Io sono il tuo master (genitore)"
         self.panello_login = PannelloLogin(self)
         self.panello_login.pack(expand=True, fill="both")
 
     def login_completato(self, token_ricevuto):
         """Viene innescato da login.py quando l'accesso ha successo."""
-        # Carico i moduli pesanti solo qui, non all'avvio
+        # Carica i moduli pesanti solo qui, non all'avvio
         from vista_galleria import PannelloGalleria
         
-        # Salvo il token per le future richieste al server
+        # Salva il token per le future richieste al server
         self.token_jwt = token_ricevuto
         print(f"Login effettuato! Token salvato in memoria: {self.token_jwt}")
 
-        # Tolgo di mezzo il login e carico la galleria
+        # Toglie di mezzo il login e carico la galleria
         if hasattr(self, "panello_login"):
             self.panello_login.pack_forget()
 
