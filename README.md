@@ -121,7 +121,7 @@ docker compose down
 
 L'applicazione login e metadati leggono da MongoDB:
 
-- database: `galleria_img`
+- database: `galleria_cloud`
 - collection utenti: `utenti`
 - collection metadati: `metadati`
 - collection log ricerche: `log_ricerche`
