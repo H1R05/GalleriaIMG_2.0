@@ -8,13 +8,13 @@
 Applicazione desktop sviluppata in Python che integra un'interfaccia grafica intuitiva con un backend a microservizi. 
 Il progetto combina la gestione locale dei file con servizi Cloud per il riconoscimento oggetti tramite Intelligenza Artificiale e l'occultamento di dati tramite Steganografia.
 
-## ✨ Funzionalità Principali
+## Funzionalità Principali
 
-- 📁 **Gestione Locale**: Esplorazione cartelle, griglia immagini, filtri per formato (JPEG, PNG, GIF, BMP) e modalità presentazione.
-- 🔐 **Sicurezza**: Autenticazione JWT verso le API Flask.
-- 🕵️ **Steganografia (LSB)**: Occultamento ed estrazione di messaggi segreti all'interno dei pixel delle immagini PNG.
-- 🤖 **Intelligenza Artificiale**: Rilevamento oggetti locale (Object Detection) tramite modello **YOLOv8** pre-addestrato.
-- ☁️ **Sincronizzazione Cloud**: Download di immagini simili e consultazione metadati dal server MongoDB.
+- **Gestione Locale**: Esplorazione cartelle, griglia immagini, filtri per formato (JPEG, PNG, GIF, BMP) e modalità presentazione.
+- **Sicurezza**: Autenticazione JWT verso le API Flask.
+- **Steganografia (LSB)**: Occultamento ed estrazione di messaggi segreti all'interno dei pixel delle immagini PNG.
+- **Intelligenza Artificiale**: Rilevamento oggetti locale (Object Detection) tramite modello **YOLOv8** pre-addestrato.
+- **Sincronizzazione Cloud**: Download di immagini simili e consultazione metadati dal server MongoDB.
 
 ## Anteprima
 <p align="center">
